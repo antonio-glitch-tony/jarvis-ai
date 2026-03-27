@@ -3,7 +3,6 @@ const chatDB = require('../database/chatDB');
 
 class JarviController {
   
-  // Nuova chat
   async newChat(req, res) {
     try {
       const { title } = req.body;
@@ -15,7 +14,6 @@ class JarviController {
     }
   }
 
-  // Chat con storico
   async chatWithHistory(req, res) {
     try {
       const { conversationId, message, options } = req.body;
@@ -26,19 +24,16 @@ class JarviController {
 
       let convId = conversationId;
       
-      // Se non c'è conversationId, crea una nuova conversazione
       if (!convId) {
         const title = message.substring(0, 50);
         convId = await chatDB.createConversation(title);
         console.log('📝 Nuova conversazione creata:', convId);
       }
 
-      // Salva il messaggio dell'utente
       await chatDB.saveMessage(convId, 'user', message);
-      await chatDB.updateConversationTime(convId);
+      chatDB.updateConversationTime(convId);
       console.log('💾 Messaggio utente salvato');
 
-      // Recupera lo storico della conversazione
       const history = await chatDB.getMessages(convId);
       const messages = history.map(msg => ({
         role: msg.role,
@@ -47,13 +42,11 @@ class JarviController {
 
       console.log(`📨 Invio ${messages.length} messaggi a AI...`);
 
-      // Ottieni risposta dall'AI
       const result = await aiService.sendMessage(messages, options);
       
       if (result.success) {
-        // Salva la risposta dell'assistente
         await chatDB.saveMessage(convId, 'assistant', result.response);
-        await chatDB.updateConversationTime(convId);
+        chatDB.updateConversationTime(convId);
         console.log('💾 Risposta AI salvata');
         
         res.json({
@@ -72,7 +65,6 @@ class JarviController {
     }
   }
 
-  // Recupera tutte le conversazioni
   async getConversations(req, res) {
     try {
       const conversations = await chatDB.getConversations();
@@ -83,7 +75,6 @@ class JarviController {
     }
   }
 
-  // Recupera una conversazione specifica
   async getConversation(req, res) {
     try {
       const { id } = req.params;
@@ -102,7 +93,6 @@ class JarviController {
     }
   }
 
-  // Elimina conversazione
   async deleteConversation(req, res) {
     try {
       const { id } = req.params;
@@ -114,7 +104,6 @@ class JarviController {
     }
   }
 
-  // Chat semplice (senza storico)
   async chat(req, res) {
     try {
       const { messages, options } = req.body;
@@ -141,146 +130,86 @@ class JarviController {
     }
   }
 
-  // Traduzione
   async translate(req, res) {
     try {
       const { text, targetLanguage } = req.body;
-      
-      if (!text) {
-        return res.status(400).json({ error: 'Text is required' });
-      }
-
+      if (!text) return res.status(400).json({ error: 'Text is required' });
       const result = await aiService.handleSpecialRequest('translate', text, { targetLanguage });
-      
-      if (result.success) {
-        res.json({ success: true, translation: result.response });
-      } else {
-        res.status(500).json({ error: result.error });
-      }
+      if (result.success) res.json({ success: true, translation: result.response });
+      else res.status(500).json({ error: result.error });
     } catch (error) {
-      console.error('Errore translate:', error);
       res.status(500).json({ error: error.message });
     }
   }
 
-  // Riassunto
   async summarize(req, res) {
     try {
       const { text } = req.body;
-      
-      if (!text) {
-        return res.status(400).json({ error: 'Text is required' });
-      }
-
+      if (!text) return res.status(400).json({ error: 'Text is required' });
       const result = await aiService.handleSpecialRequest('summarize', text);
-      
-      if (result.success) {
-        res.json({ success: true, summary: result.response });
-      } else {
-        res.status(500).json({ error: result.error });
-      }
+      if (result.success) res.json({ success: true, summary: result.response });
+      else res.status(500).json({ error: result.error });
     } catch (error) {
-      console.error('Errore summarize:', error);
       res.status(500).json({ error: error.message });
     }
   }
 
-  // Generazione codice
   async generateCode(req, res) {
     try {
       const { prompt, language } = req.body;
-      
-      if (!prompt) {
-        return res.status(400).json({ error: 'Prompt is required' });
-      }
-
+      if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
       const result = await aiService.handleSpecialRequest('code', prompt, { language });
-      
-      if (result.success) {
-        res.json({ success: true, code: result.response });
-      } else {
-        res.status(500).json({ error: result.error });
-      }
+      if (result.success) res.json({ success: true, code: result.response });
+      else res.status(500).json({ error: result.error });
     } catch (error) {
-      console.error('Errore generateCode:', error);
       res.status(500).json({ error: error.message });
     }
   }
 
-  // Debug codice
   async debugCode(req, res) {
     try {
       const { code } = req.body;
-      
-      if (!code) {
-        return res.status(400).json({ error: 'Code is required' });
-      }
-
+      if (!code) return res.status(400).json({ error: 'Code is required' });
       const result = await aiService.handleSpecialRequest('debug', code);
-      
-      if (result.success) {
-        res.json({ success: true, debugged: result.response });
-      } else {
-        res.status(500).json({ error: result.error });
-      }
+      if (result.success) res.json({ success: true, debugged: result.response });
+      else res.status(500).json({ error: result.error });
     } catch (error) {
-      console.error('Errore debugCode:', error);
       res.status(500).json({ error: error.message });
     }
   }
 
-  // Spiegazione semplice
   async explain(req, res) {
     try {
       const { concept } = req.body;
-      
-      if (!concept) {
-        return res.status(400).json({ error: 'Concept is required' });
-      }
-
+      if (!concept) return res.status(400).json({ error: 'Concept is required' });
       const result = await aiService.handleSpecialRequest('explain', concept);
-      
-      if (result.success) {
-        res.json({ success: true, explanation: result.response });
-      } else {
-        res.status(500).json({ error: result.error });
-      }
+      if (result.success) res.json({ success: true, explanation: result.response });
+      else res.status(500).json({ error: result.error });
     } catch (error) {
-      console.error('Errore explain:', error);
       res.status(500).json({ error: error.message });
     }
   }
 
-  // Esercizi/Quiz
   async createExercise(req, res) {
     try {
       const { topic, type, level } = req.body;
-      
       const result = await aiService.handleSpecialRequest('exercise', topic, { type, level });
-      
-      if (result.success) {
-        res.json({ success: true, exercise: result.response });
-      } else {
-        res.status(500).json({ error: result.error });
-      }
+      if (result.success) res.json({ success: true, exercise: result.response });
+      else res.status(500).json({ error: result.error });
     } catch (error) {
-      console.error('Errore createExercise:', error);
       res.status(500).json({ error: error.message });
     }
   }
 
-  // Lista modelli disponibili
   async getModels(req, res) {
     try {
       const config = require('../../config/config');
       res.json({ success: true, models: config.models });
     } catch (error) {
-      console.error('Errore getModels:', error);
       res.status(500).json({ error: error.message });
     }
   }
 
-  // Cambia modello AI
   async switchModel(req, res) {
     try {
       const config = require('../../config/config');
@@ -300,7 +229,23 @@ class JarviController {
         });
       }
     } catch (error) {
-      console.error('Errore switchModel:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // AGGIUNGI QUESTO METODO
+  async getSystemInfo(req, res) {
+    try {
+      const now = new Date();
+      res.json({
+        success: true,
+        date: now.toLocaleDateString('it-IT'),
+        time: now.toLocaleTimeString('it-IT'),
+        day: now.toLocaleDateString('it-IT', { weekday: 'long' }),
+        timestamp: now.toISOString()
+      });
+    } catch (error) {
+      console.error('Errore getSystemInfo:', error);
       res.status(500).json({ error: error.message });
     }
   }
