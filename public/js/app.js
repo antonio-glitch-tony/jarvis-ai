@@ -7,6 +7,9 @@ class JarvisInterface {
         this.recognition = null;
         this.isSpeaking = false;
         this.isListening = false;
+        this.sidebar = null;
+        this.hamburgerBtn = null;
+        this.sidebarOverlay = null;
         this.init();
     }
 
@@ -27,6 +30,49 @@ class JarvisInterface {
         this.initSpeechRecognition();
         this.loadConversations();
         this.createNewChat();
+        this.initSidebar();
+    }
+
+    initSidebar() {
+        this.sidebar = document.getElementById('sidebar');
+        this.hamburgerBtn = document.getElementById('hamburgerBtn');
+        this.sidebarOverlay = document.getElementById('sidebarOverlay');
+        
+        if (window.innerWidth < 992) {
+            this.closeSidebar();
+        }
+        
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 992) {
+                this.openSidebar();
+            } else {
+                this.closeSidebar();
+            }
+        });
+    }
+
+    toggleSidebar() {
+        if (this.sidebar.classList.contains('open')) {
+            this.closeSidebar();
+        } else {
+            this.openSidebar();
+        }
+    }
+
+    openSidebar() {
+        if (this.sidebar) {
+            this.sidebar.classList.add('open');
+            if (this.hamburgerBtn) this.hamburgerBtn.classList.add('active');
+            if (this.sidebarOverlay) this.sidebarOverlay.classList.add('active');
+        }
+    }
+
+    closeSidebar() {
+        if (this.sidebar) {
+            this.sidebar.classList.remove('open');
+            if (this.hamburgerBtn) this.hamburgerBtn.classList.remove('active');
+            if (this.sidebarOverlay) this.sidebarOverlay.classList.remove('active');
+        }
     }
 
     initSpeechRecognition() {
@@ -271,6 +317,10 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo file in dettaglio. 
                 
                 this.renderConversationsList();
                 this.renderConversationsDropdown();
+                
+                if (window.innerWidth < 992) {
+                    this.closeSidebar();
+                }
             }
         } catch (error) {
             console.error('Error loading conversation:', error);
@@ -306,6 +356,10 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo file in dettaglio. 
             await this.loadConversations();
             this.updateConversationTitle();
             this.userInput.focus();
+            
+            if (window.innerWidth < 992) {
+                this.closeSidebar();
+            }
         } catch (error) {
             console.error('Error creating chat:', error);
         }
