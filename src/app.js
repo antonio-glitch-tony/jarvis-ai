@@ -24,6 +24,13 @@ app.post('/api/exercise', jarviController.createExercise.bind(jarviController));
 app.get('/api/models', jarviController.getModels.bind(jarviController));
 app.post('/api/models/switch', jarviController.switchModel.bind(jarviController));
 
+// Routes per storico chat
+app.post('/api/chat/history', jarviController.chatWithHistory.bind(jarviController));
+app.post('/api/chat/new', jarviController.newChat.bind(jarviController));
+app.get('/api/conversations', jarviController.getConversations.bind(jarviController));
+app.get('/api/conversations/:id', jarviController.getConversation.bind(jarviController));
+app.delete('/api/conversations/:id', jarviController.deleteConversation.bind(jarviController));
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ 
