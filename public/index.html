@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS - Intelligence Artificielle</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="scan-line"></div>
+    <div class="container">
+        <div class="header">
+            <div class="glow-text">J.A.R.V.I.S.</div>
+            <div class="subtitle">Just A Rather Very Intelligent System</div>
+            <div class="status-indicator">
+                <span class="status-led"></span>
+                <span class="status-text">SYSTEM ONLINE</span>
+            </div>
+        </div>
+
+        <div class="hologram-container">
+            <div class="hologram-circle"></div>
+            <div class="hologram-circle-2"></div>
+            <div class="hologram-circle-3"></div>
+            <div class="hologram-core"></div>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message system-message">
+                    <div class="message-header">JARVIS v1.0</div>
+                    <div class="message-content">Good morning, sir. How may I assist you today?</div>
+                    <div class="message-time">System initialized</div>
+                </div>
+            </div>
+            
+            <div class="input-container">
+                <textarea id="userInput" placeholder="Enter your command..." rows="1"></textarea>
+                <button id="sendBtn" class="send-button">
+                    <div class="button-glow"></div>
+                    SEND
+                </button>
+            </div>
+        </div>
+
+        <div class="capabilities-panel">
+            <div class="panel-title">CAPABILITIES MATRIX</div>
+            <div class="capabilities-grid">
+                <div class="capability">⚡ CODE GENERATION</div>
+                <div class="capability">🌍 TRANSLATION</div>
+                <div class="capability">📝 SUMMARIZATION</div>
+                <div class="capability">🐛 DEBUGGING</div>
+                <div class="capability">🎓 EDUCATION</div>
+                <div class="capability">💡 CREATIVITY</div>
+                <div class="capability">📊 ANALYSIS</div>
+                <div class="capability">🎯 LOGIC</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
