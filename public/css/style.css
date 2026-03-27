@@ -356,37 +356,143 @@ textarea:focus {
     background: #0066ff;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .glow-text {
-        font-size: 2rem;
-    }
-    
-    .message-content {
-        max-width: 95%;
-    }
-    
-    .capabilities-grid {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    }
-}
-/* Sidebar storico chat */
+/* Sidebar storico chat - STILE UNIFORME PER TUTTI I DISPOSITIVI */
 .sidebar {
     position: fixed;
-    left: 0;
+    left: -320px;
     top: 0;
-    width: 300px;
+    width: 320px;
     height: 100vh;
     background: rgba(0, 0, 0, 0.95);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(15px);
     border-right: 1px solid rgba(0, 243, 255, 0.3);
     overflow-y: auto;
-    z-index: 1000;
-    box-shadow: 5px 0 20px rgba(0,0,0,0.5);
+    z-index: 1050;
+    transition: left 0.3s ease;
+    box-shadow: 5px 0 20px rgba(0, 0, 0, 0.5);
 }
 
+.sidebar.open {
+    left: 0;
+}
+
+/* HAMBURGER MENU BUTTON - visibile su tutti i dispositivi */
+.hamburger-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 45px;
+    height: 45px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.hamburger-btn:hover {
+    border-color: #00f3ff;
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+}
+
+.hamburger-btn span {
+    width: 25px;
+    height: 2px;
+    background: #00f3ff;
+    transition: all 0.3s ease;
+    border-radius: 2px;
+}
+
+.hamburger-btn.active span:nth-child(1) {
+    transform: rotate(45deg) translate(6px, 6px);
+}
+
+.hamburger-btn.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger-btn.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(6px, -6px);
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid rgba(0, 243, 255, 0.3);
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.sidebar-logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.2rem;
+    font-weight: bold;
+    background: linear-gradient(135deg, #00f3ff, #0066ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.close-sidebar {
+    background: none;
+    border: none;
+    color: #00f3ff;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+}
+
+.close-sidebar:hover {
+    background: rgba(0, 243, 255, 0.2);
+    transform: scale(1.1);
+}
+
+/* OVERLAY PER CHIUDERE IL MENU */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(2px);
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* MAIN CONTENT - nessun margin-left di default */
 .main-content {
-    margin-left: 300px;
+    margin-left: 0;
+    transition: margin-left 0.3s ease;
+}
+
+/* Quando la sidebar è aperta, sposta il contenuto solo su dispositivi grandi (opzionale) */
+@media (min-width: 992px) {
+    .sidebar.open ~ .main-content,
+    .sidebar.open + .main-content {
+        margin-left: 320px;
+    }
 }
 
 .conversations-header {
@@ -475,6 +581,32 @@ textarea:focus {
     opacity: 1;
 }
 
+/* Dropdown menu */
+.conversations-dropdown {
+    width: calc(100% - 40px);
+    margin: 10px 20px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    border-radius: 8px;
+    color: #00f3ff;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.conversations-dropdown:hover {
+    border-color: #00f3ff;
+    background: rgba(0, 243, 255, 0.1);
+}
+
+.conversations-dropdown option {
+    background: #0a0a2a;
+    color: #00f3ff;
+    padding: 10px;
+}
+
 /* Speaking indicator */
 .speaking-indicator {
     position: fixed;
@@ -487,33 +619,6 @@ textarea:focus {
     font-size: 0.7rem;
     animation: pulse 1s infinite;
     z-index: 1000;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .sidebar {
-        width: 250px;
-    }
-    .main-content {
-        margin-left: 250px;
-    }
-}
-
-/* Dropdown menu */
-.conversations-dropdown {
-    width: calc(100% - 40px);
-    margin: 10px 20px;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.8);
-    border: 1px solid rgba(0, 243, 255, 0.3);
-    border-radius: 5px;
-    color: #00f3ff;
-    font-family: 'Share Tech Mono', monospace;
-    cursor: pointer;
-}
-
-.conversations-dropdown:hover {
-    border-color: #00f3ff;
 }
 
 /* Creator badge */
@@ -603,19 +708,6 @@ textarea:focus {
     align-items: center;
 }
 
-textarea {
-    flex: 1;
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(0, 243, 255, 0.3);
-    border-radius: 10px;
-    padding: 12px;
-    color: #00f3ff;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.9rem;
-    resize: none;
-    outline: none;
-}
-
 .mic-button, .file-button, .send-button {
     height: 45px;
 }
@@ -625,10 +717,317 @@ textarea {
     cursor: not-allowed;
 }
 
-/* Menu a tendina migliorato */
+/* Responsive */
+@media (max-width: 768px) {
+    .glow-text {
+        font-size: 2rem;
+    }
+    
+    .message-content {
+        max-width: 95%;
+    }
+    
+    .capabilities-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+    
+    .sidebar {
+        width: 85%;
+        max-width: 280px;
+    }
+    
+    .hamburger-btn {
+        top: 10px;
+        left: 10px;
+        width: 40px;
+        height: 40px;
+    }
+    
+    .hamburger-btn span {
+        width: 20px;
+    }
+    
+    .container {
+        padding: 15px;
+    }
+    
+    .input-container {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .mic-button, .file-button, .send-button {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+    
+    .send-button {
+        width: auto;
+        padding: 0 20px;
+    }
+    
+    .capabilities-grid {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    }
+    
+    .capability {
+        font-size: 0.6rem;
+        padding: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .glow-text {
+        font-size: 1.4rem;
+    }
+    
+    .subtitle {
+        font-size: 0.7rem;
+    }
+    
+    .message-content {
+        max-width: 90%;
+        font-size: 0.85rem;
+        padding: 8px 12px;
+    }
+    
+    .chat-messages {
+        height: 350px;
+    }
+    
+    .conversation-item {
+        padding: 10px 15px;
+    }
+    
+    .conv-title {
+        font-size: 0.75rem;
+    }
+}
+
+/* ========== STILE MESSAGGI MODERNO ========== */
+.message {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    animation: fadeIn 0.3s ease;
+}
+
+.user-message {
+    flex-direction: row-reverse;
+}
+
+.user-message .message-bubble {
+    background: linear-gradient(135deg, rgba(0, 243, 255, 0.15), rgba(0, 102, 255, 0.15));
+    border: 1px solid rgba(0, 243, 255, 0.4);
+}
+
+.system-message .message-bubble {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 243, 255, 0.2);
+}
+
+.message-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(0, 243, 255, 0.1);
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.user-message .message-avatar {
+    background: linear-gradient(135deg, #00f3ff, #0066ff);
+}
+
+.message-bubble {
+    max-width: 75%;
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+.message-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 8px 15px 0 15px;
+    font-size: 0.7rem;
+}
+
+.message-sender {
+    font-weight: bold;
+    color: #00f3ff;
+    letter-spacing: 1px;
+}
+
+.message-time {
+    color: rgba(0, 243, 255, 0.5);
+    font-size: 0.65rem;
+}
+
+.message-content {
+    padding: 8px 15px 12px 15px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.message-content pre {
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    padding: 10px;
+    overflow-x: auto;
+    margin: 8px 0;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    border-left: 3px solid #00f3ff;
+}
+
+.message-content code {
+    font-family: 'Share Tech Mono', monospace;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.message-content strong {
+    color: #00f3ff;
+}
+
+.message-content a {
+    color: #00f3ff;
+    text-decoration: underline;
+}
+
+/* Typing indicator */
+.typing-indicator .message-bubble {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.typing-dots span {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #00f3ff;
+    margin: 0 2px;
+    animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(1) { animation-delay: 0s; }
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+    30% {
+        transform: translateY(-8px);
+        opacity: 1;
+    }
+}
+
+/* ========== STILE SIDEBAR STORICO CHAT ========== */
+.sidebar {
+    position: fixed;
+    left: -320px;
+    top: 0;
+    width: 320px;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(15px);
+    border-right: 1px solid rgba(0, 243, 255, 0.3);
+    overflow-y: auto;
+    z-index: 1050;
+    transition: left 0.3s ease;
+    box-shadow: 5px 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.sidebar.open {
+    left: 0;
+}
+
+/* Conversazioni list */
+#conversationsList {
+    padding: 10px 0;
+}
+
+.conversation-item {
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(0, 243, 255, 0.1);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.conversation-item:hover {
+    background: rgba(0, 243, 255, 0.1);
+}
+
+.conversation-item.active {
+    background: rgba(0, 243, 255, 0.2);
+    border-left: 3px solid #00f3ff;
+}
+
+.conv-title {
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #fff;
+    font-weight: 500;
+}
+
+.conv-date {
+    font-size: 0.65rem;
+    color: rgba(0, 243, 255, 0.6);
+}
+
+.delete-conv {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #ff5555;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 1rem;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.delete-conv:hover {
+    background: rgba(255, 68, 68, 0.2);
+    color: #ff8888;
+}
+
+.conversation-item:hover .delete-conv {
+    opacity: 1;
+}
+
+.no-conversations {
+    text-align: center;
+    padding: 30px;
+    color: rgba(0, 243, 255, 0.5);
+    font-size: 0.85rem;
+}
+
+/* Dropdown menu migliorato */
 .conversations-dropdown {
-    width: calc(100% - 40px);
-    margin: 10px 20px;
+    width: calc(100% - 30px);
+    margin: 15px;
     padding: 12px;
     background: rgba(0, 0, 0, 0.8);
     border: 1px solid rgba(0, 243, 255, 0.3);
@@ -645,8 +1044,293 @@ textarea {
     background: rgba(0, 243, 255, 0.1);
 }
 
-.conversations-dropdown option {
-    background: #0a0a2a;
+/* Responsive per messaggi */
+@media (max-width: 768px) {
+    .message-bubble {
+        max-width: 85%;
+    }
+    
+    .message-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+    
+    .message-content {
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .message-bubble {
+        max-width: 90%;
+    }
+    
+    .message-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 0.9rem;
+    }
+    
+    .message-header {
+        padding: 6px 12px 0 12px;
+    }
+    
+    .message-content {
+        padding: 6px 12px 10px 12px;
+        font-size: 0.8rem;
+    }
+}
+
+
+/* HAMBURGER MENU BUTTON */
+.hamburger-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 45px;
+    height: 45px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.hamburger-btn:hover {
+    border-color: #00f3ff;
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+}
+
+.hamburger-btn span {
+    width: 25px;
+    height: 2px;
+    background: #00f3ff;
+    transition: all 0.3s ease;
+    border-radius: 2px;
+}
+
+.hamburger-btn.active span:nth-child(1) {
+    transform: rotate(45deg) translate(6px, 6px);
+}
+
+.hamburger-btn.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger-btn.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(6px, -6px);
+}
+
+/* SIDEBAR */
+.sidebar {
+    position: fixed;
+    left: -320px;
+    top: 0;
+    width: 320px;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(15px);
+    border-right: 1px solid rgba(0, 243, 255, 0.3);
+    overflow-y: auto;
+    z-index: 1050;
+    transition: left 0.3s ease;
+    box-shadow: 5px 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.sidebar.open {
+    left: 0;
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid rgba(0, 243, 255, 0.3);
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.sidebar-logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.2rem;
+    font-weight: bold;
+    background: linear-gradient(135deg, #00f3ff, #0066ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.close-sidebar {
+    background: none;
+    border: none;
     color: #00f3ff;
-    padding: 10px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+}
+
+.close-sidebar:hover {
+    background: rgba(0, 243, 255, 0.2);
+    transform: scale(1.1);
+}
+
+/* OVERLAY PER CHIUDERE IL MENU SU MOBILE */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(2px);
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* MAIN CONTENT ADAPTATION */
+.main-content {
+    margin-left: 0;
+    transition: margin-left 0.3s ease;
+}
+
+/* RESPONSIVE ADJUSTMENTS */
+@media (min-width: 992px) {
+    .sidebar {
+        left: 0;
+    }
+    
+    .hamburger-btn {
+        display: none;
+    }
+    
+    .close-sidebar {
+        display: none;
+    }
+    
+    .sidebar-overlay {
+        display: none;
+    }
+    
+    .main-content {
+        margin-left: 320px;
+    }
+}
+
+@media (max-width: 991px) and (min-width: 768px) {
+    .sidebar {
+        width: 280px;
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
+    
+    .hamburger-btn {
+        display: flex;
+    }
+}
+
+@media (max-width: 767px) {
+    .sidebar {
+        width: 85%;
+        max-width: 280px;
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
+    
+    .hamburger-btn {
+        display: flex;
+        top: 10px;
+        left: 10px;
+        width: 40px;
+        height: 40px;
+    }
+    
+    .hamburger-btn span {
+        width: 20px;
+    }
+    
+    .glow-text {
+        font-size: 1.8rem;
+    }
+    
+    .container {
+        padding: 15px;
+    }
+    
+    .input-container {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .mic-button, .file-button, .send-button {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+    
+    .send-button {
+        width: auto;
+        padding: 0 20px;
+    }
+    
+    .capabilities-grid {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    }
+    
+    .capability {
+        font-size: 0.6rem;
+        padding: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .glow-text {
+        font-size: 1.4rem;
+    }
+    
+    .subtitle {
+        font-size: 0.7rem;
+    }
+    
+    .message-content {
+        max-width: 90%;
+        font-size: 0.85rem;
+        padding: 8px 12px;
+    }
+    
+    .chat-messages {
+        height: 350px;
+    }
+    
+    .conversation-item {
+        padding: 10px 15px;
+    }
+    
+    .conv-title {
+        font-size: 0.75rem;
+    }
 }

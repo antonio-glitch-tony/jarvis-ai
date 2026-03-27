@@ -31,6 +31,7 @@ class JarvisInterface {
         this.loadConversations();
         this.createNewChat();
         this.initSidebar();
+        this.updateSystemTime();
     }
 
     initSidebar() {
@@ -72,6 +73,18 @@ class JarvisInterface {
             this.sidebar.classList.remove('open');
             if (this.hamburgerBtn) this.hamburgerBtn.classList.remove('active');
             if (this.sidebarOverlay) this.sidebarOverlay.classList.remove('active');
+        }
+    }
+
+    async updateSystemTime() {
+        try {
+            const response = await fetch(`${this.apiUrl}/system/info`);
+            const data = await response.json();
+            if (data.success) {
+                console.log(`📅 ${data.day} ${data.date} - 🕐 ${data.time}`);
+            }
+        } catch (error) {
+            console.error('Errore recupero ora:', error);
         }
     }
 

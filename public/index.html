@@ -2,14 +2,25 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>JARVIS - Iron Man AI</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- MENU A TENDINA PER CHAT -->
-    <div class="sidebar">
+    <!-- HAMBURGER MENU BUTTON -->
+    <button id="hamburgerBtn" class="hamburger-btn" onclick="window.jarvis.toggleSidebar()">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
+    <!-- SIDEBAR MENU -->
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">J.A.R.V.I.S.</div>
+            <button id="closeSidebarBtn" class="close-sidebar" onclick="window.jarvis.toggleSidebar()">✕</button>
+        </div>
         <div class="conversations-header">
             <h3>💬 STORICO CHAT</h3>
             <button onclick="window.jarvis.createNewChat()" class="new-chat-btn">+ NUOVA</button>
@@ -19,6 +30,9 @@
         </select>
         <div id="conversationsList"></div>
     </div>
+
+    <!-- OVERLAY PER CHIUDERE IL MENU SU MOBILE -->
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="window.jarvis.toggleSidebar()"></div>
 
     <!-- CONTENUTO PRINCIPALE -->
     <div class="main-content">
