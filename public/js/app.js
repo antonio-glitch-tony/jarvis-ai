@@ -64,13 +64,11 @@ class JarvisInterface {
         
         this.initSpeechRecognition();
         this.loadConversations();
-        this.createNewChat();
-        this.updateSystemTime();
         
-        // Welcome message with user name
-        setTimeout(() => {
-            this.addMessage('JARVIS', `Benvenuto ${this.currentUser.name}! Come posso assisterti oggi, signore?`, 'assistant', []);
-        }, 500);
+        // Crea una nuova chat solo se non ci sono conversazioni
+        this.createNewChat();
+        
+        this.updateSystemTime();
     }
     
     initSidebar() {
@@ -238,7 +236,8 @@ class JarvisInterface {
                     this.currentConversationId = data.conversationId;
                     await this.typeMessage(`📄 **Analisi file: ${file.name}**\n\n${data.response}`, data.sources || []);
                     this.speak(data.response);
-                    await this.loadConversations();
+                    await this.loadConversations(); // Ricarica lo storico
+                    this.updateActiveConversation(); // Aggiorna UI
                 } else {
                     this.addMessage('JARVIS', `Errore: ${data.error}`, 'system', []);
                 }
@@ -257,7 +256,8 @@ class JarvisInterface {
             });
             const data = await response.json();
             if (data.success) {
-                this.conversations = data.conversations;
+                this.conversations = data.conversations || [];
+                console.log('📋 Conversazioni caricate:', this.conversations.length);
                 this.renderConversationsList();
                 this.renderConversationsDropdown();
             }
@@ -274,14 +274,17 @@ class JarvisInterface {
             return;
         }
         
-        this.conversationsDropdown.innerHTML = '<option value="">-- Seleziona conversazione --</option>' +
-            this.conversations.map(conv => {
-                let displayTitle = conv.title || 'Nuova conversazione';
-                if (displayTitle.length > 35) {
-                    displayTitle = displayTitle.substring(0, 35) + '...';
-                }
-                return `<option value="${conv.id}" ${this.currentConversationId === conv.id ? 'selected' : ''}>${displayTitle}</option>`;
-            }).join('');
+        let options = '<option value="">-- Seleziona conversazione --</option>';
+        this.conversations.forEach(conv => {
+            let displayTitle = conv.title || 'Nuova conversazione';
+            if (displayTitle.length > 35) {
+                displayTitle = displayTitle.substring(0, 35) + '...';
+            }
+            const selected = this.currentConversationId === conv.id ? 'selected' : '';
+            options += `<option value="${conv.id}" ${selected}>${displayTitle}</option>`;
+        });
+        
+        this.conversationsDropdown.innerHTML = options;
     }
     
     renderConversationsList() {
@@ -289,7 +292,7 @@ class JarvisInterface {
         if (!container) return;
         
         if (this.conversations.length === 0) {
-            container.innerHTML = '<div style="padding: 20px; text-align: center; color: rgba(0,243,255,0.5);">Nessuna conversazione</div>';
+            container.innerHTML = '<div class="no-conversations">📭 Nessuna conversazione<br>Clicca "NUOVA" per iniziare</div>';
             return;
         }
         
@@ -313,13 +316,16 @@ class JarvisInterface {
                 this.currentConversationId = id;
                 this.clearMessages();
                 
-                data.messages.forEach(msg => {
-                    const sources = msg.sources ? JSON.parse(msg.sources) : [];
-                    this.addMessage(msg.role === 'user' ? 'Tu' : 'JARVIS', msg.content, msg.role, sources);
-                });
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        const sources = msg.sources ? JSON.parse(msg.sources) : [];
+                        this.addMessage(msg.role === 'user' ? 'Tu' : 'JARVIS', msg.content, msg.role, sources, false);
+                    });
+                }
                 
                 this.renderConversationsList();
                 this.renderConversationsDropdown();
+                this.updateActiveConversation();
                 
                 if (window.innerWidth < 992) {
                     this.closeSidebar();
@@ -339,8 +345,11 @@ class JarvisInterface {
                 headers: { 'Authorization': `Bearer ${this.token}` }
             });
             await this.loadConversations();
+            
             if (this.currentConversationId === id) {
                 this.createNewChat();
+            } else {
+                this.updateActiveConversation();
             }
         } catch (error) {
             console.error('Error deleting conversation:', error);
@@ -358,17 +367,44 @@ class JarvisInterface {
                 body: JSON.stringify({})
             });
             const data = await response.json();
-            this.currentConversationId = data.conversationId;
-            this.clearMessages();
-            this.addMessage('JARVIS', `Sistema pronto. Come posso assisterla, ${this.currentUser.name}?`, 'assistant', []);
-            await this.loadConversations();
-            this.userInput.focus();
             
-            if (window.innerWidth < 992) {
-                this.closeSidebar();
+            if (data.success) {
+                this.currentConversationId = data.conversationId;
+                this.clearMessages();
+                
+                // Messaggio di benvenuto con nome utente
+                const welcomeMsg = `Buongiorno ${this.currentUser.name}! Sono JARVIS, a sua disposizione. Come posso assisterla oggi?`;
+                this.addMessage('JARVIS', welcomeMsg, 'assistant', [], true);
+                
+                // Ricarica la lista conversazioni
+                await this.loadConversations();
+                this.updateActiveConversation();
+                this.userInput.focus();
+                
+                if (window.innerWidth < 992) {
+                    this.closeSidebar();
+                }
             }
         } catch (error) {
             console.error('Error creating chat:', error);
+        }
+    }
+    
+    updateActiveConversation() {
+        // Aggiorna la classe active nella lista
+        const items = document.querySelectorAll('.conversation-item');
+        items.forEach(item => {
+            const onclickAttr = item.getAttribute('onclick');
+            if (onclickAttr && onclickAttr.includes(this.currentConversationId)) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+        
+        // Aggiorna il dropdown
+        if (this.conversationsDropdown) {
+            this.conversationsDropdown.value = this.currentConversationId || '';
         }
     }
     
@@ -381,7 +417,7 @@ class JarvisInterface {
         const content = this.userInput.value.trim();
         if (!content) return;
         
-        this.addMessage('Tu', content, 'user', []);
+        this.addMessage('Tu', content, 'user', [], true);
         this.userInput.value = '';
         
         this.showTypingIndicator();
@@ -406,13 +442,14 @@ class JarvisInterface {
                 this.currentConversationId = data.conversationId;
                 await this.typeMessage(data.response, data.sources || []);
                 this.speak(data.response);
-                await this.loadConversations();
+                await this.loadConversations(); // Ricarica lo storico
+                this.updateActiveConversation();
             } else {
-                this.addMessage('JARVIS', `Errore: ${data.error}`, 'system', []);
+                this.addMessage('JARVIS', `Errore: ${data.error}`, 'system', [], true);
             }
         } catch (error) {
             this.hideTypingIndicator();
-            this.addMessage('JARVIS', `Errore di connessione: ${error.message}`, 'system', []);
+            this.addMessage('JARVIS', `Errore di connessione: ${error.message}`, 'system', [], true);
         }
     }
     
@@ -424,23 +461,30 @@ class JarvisInterface {
             const time = new Date().toLocaleTimeString();
             const messageId = 'msg_' + Date.now();
             
+            let sourcesHtml = '';
+            if (sources && sources.length > 0) {
+                sourcesHtml = `
+                    <div class="message-sources">
+                        <div class="sources-toggle" onclick="document.getElementById('sources_${messageId}').classList.toggle('show')">
+                            🔍 Fonti verificate ▼
+                        </div>
+                        <div id="sources_${messageId}" class="sources-list">
+                            ${sources.map(s => `
+                                <div class="source-item">
+                                    <span class="source-verified">✓</span>
+                                    ${s.url ? `<a href="${s.url}" target="_blank" class="source-link">${s.title}</a>` : s.title}
+                                    ${s.verified ? '<span style="color: #00ff00;"> (Verificata)</span>' : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
             messageDiv.innerHTML = `
                 <div class="message-header">JARVIS • ${time}</div>
                 <div class="message-content" id="${messageId}"></div>
-                <div class="message-sources">
-                    <div class="sources-toggle" onclick="document.getElementById('sources_${messageId}').classList.toggle('show')">
-                        🔍 Fonti verificate ▼
-                    </div>
-                    <div id="sources_${messageId}" class="sources-list">
-                        ${sources.map(s => `
-                            <div class="source-item">
-                                <span class="source-verified">✓</span>
-                                ${s.url ? `<a href="${s.url}" target="_blank" class="source-link">${s.title}</a>` : s.title}
-                                ${s.verified ? '<span style="color: #00ff00;"> (Verificata)</span>' : ''}
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
+                ${sourcesHtml}
             `;
             
             this.chatMessages.appendChild(messageDiv);
@@ -466,7 +510,7 @@ class JarvisInterface {
                     
                     resolve();
                 }
-            }, 30);
+            }, 20);
         });
     }
     
@@ -506,12 +550,12 @@ class JarvisInterface {
         URL.revokeObjectURL(url);
     }
     
-    addMessage(sender, content, role, sources) {
+    addMessage(sender, content, role, sources, scrollToBottom = true) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${role === 'user' ? 'user-message' : 'system-message'}`;
         
         const time = new Date().toLocaleTimeString();
-        const messageId = 'msg_' + Date.now();
+        const messageId = 'msg_' + Date.now() + '_' + Math.random();
         
         let sourcesHtml = '';
         if (sources && sources.length > 0) {
@@ -540,7 +584,7 @@ class JarvisInterface {
         `;
         
         this.chatMessages.appendChild(messageDiv);
-        this.scrollToBottom();
+        if (scrollToBottom) this.scrollToBottom();
         
         // Add download button for code
         if (content.includes('```')) {
