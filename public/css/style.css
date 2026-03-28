@@ -486,6 +486,15 @@ body {
     font-size: 0.8rem;
 }
 
+.source-link {
+    color: #00f3ff;
+    text-decoration: none;
+}
+
+.source-link:hover {
+    text-decoration: underline;
+}
+
 /* Code Download Button */
 .code-download-btn {
     display: inline-block;
@@ -1005,12 +1014,14 @@ textarea:focus {
     transition: margin-left 0.3s ease;
 }
 
-/* No Conversations */
+/* No Conversations - Rimuovi completamente qualsiasi messaggio */
 .no-conversations {
-    text-align: center;
-    padding: 30px;
-    color: rgba(0, 243, 255, 0.5);
-    font-size: 0.85rem;
+    display: none;
+}
+
+/* Sidebar vuota - nessun messaggio */
+#conversationsList:empty {
+    display: block;
 }
 
 /* Modal Styles (Profile) */

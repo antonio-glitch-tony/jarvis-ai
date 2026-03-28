@@ -64,10 +64,7 @@ class JarvisInterface {
         
         this.initSpeechRecognition();
         this.loadConversations();
-        
-        // Crea una nuova chat solo se non ci sono conversazioni
         this.createNewChat();
-        
         this.updateSystemTime();
     }
     
@@ -270,7 +267,7 @@ class JarvisInterface {
         if (!this.conversationsDropdown) return;
         
         if (this.conversations.length === 0) {
-            this.conversationsDropdown.innerHTML = '<option value="">-- Nessuna conversazione --</option>';
+            this.conversationsDropdown.innerHTML = '<option value="">-- Seleziona una conversazione --</option>';
             return;
         }
         
@@ -291,8 +288,9 @@ class JarvisInterface {
         const container = document.getElementById('conversationsList');
         if (!container) return;
         
+        // Se non ci sono conversazioni, lascia la lista vuota (nessun messaggio)
         if (this.conversations.length === 0) {
-            container.innerHTML = '<div class="no-conversations">📭 Nessuna conversazione<br>Clicca "NUOVA" per iniziare</div>';
+            container.innerHTML = '';
             return;
         }
         
@@ -321,6 +319,8 @@ class JarvisInterface {
                         const sources = msg.sources ? JSON.parse(msg.sources) : [];
                         this.addMessage(msg.role === 'user' ? 'Tu' : 'JARVIS', msg.content, msg.role, sources, false);
                     });
+                } else {
+                    this.addMessage('JARVIS', `Buongiorno ${this.currentUser.name}! Come posso assisterla oggi?`, 'assistant', [], true);
                 }
                 
                 this.renderConversationsList();
@@ -724,14 +724,6 @@ class JarvisInterface {
             const data = await response.json();
             
             if (data.success) {
-                const qrHtml = `
-                    <div class="qr-code">
-                        <img src="${data.qrCode}" alt="QR Code">
-                        <p>Scansiona con Google Authenticator</p>
-                        <p>Codice segreto: <strong>${data.secret}</strong></p>
-                    </div>
-                `;
-                
                 const code = prompt('Inserisci il codice generato da Google Authenticator:');
                 if (code) {
                     const verifyResponse = await fetch('/api/auth/enable-2fa', {
@@ -882,7 +874,6 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     const password = document.getElementById('loginPassword').value;
     const messageDiv = document.getElementById('authMessage');
     
-    // Controllo email autorizzata
     if (email !== 'antonio.pepice08@gmail.com') {
         messageDiv.innerHTML = '<span style="color: #ff4444;">❌ Solo l\'email autorizzata può accedere</span>';
         return;
@@ -918,7 +909,6 @@ document.getElementById('registerForm')?.addEventListener('submit', async (e) =>
     const password = document.getElementById('regPassword').value;
     const messageDiv = document.getElementById('authMessage');
     
-    // Controllo email autorizzata
     if (email !== 'antonio.pepice08@gmail.com') {
         messageDiv.innerHTML = '<span style="color: #ff4444;">❌ Solo l\'email autorizzata può registrarsi</span>';
         return;
