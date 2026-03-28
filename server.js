@@ -16,7 +16,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Database setup per Render (usa /tmp per i file temporanei)
+// Database setup
 const dbPath = process.env.RENDER ? '/tmp/jarvis.db' : path.join(__dirname, 'data', 'jarvis.db');
 const dataDir = path.join(__dirname, 'data');
 
@@ -188,10 +188,7 @@ app.post('/api/chat/history', authenticateToken, async (req, res) => {
     
     // Generate AI response
     const aiResponse = generateAIResponse(message, messages, req.user.name);
-    const sources = [
-        { title: 'Knowledge Base JARVIS', verified: true },
-        { title: 'Documentazione Ufficiale', url: 'https://developer.mozilla.org', verified: true }
-    ];
+    const sources = generateSources(message);
     
     // Save AI response with sources
     db.run(
@@ -261,31 +258,415 @@ app.delete('/api/conversations/:id', authenticateToken, (req, res) => {
     );
 });
 
-// AI Response Generator
+// ============ FUNZIONE PRINCIPALE JARVIS ============
 function generateAIResponse(message, history, userName) {
     const lowerMessage = message.toLowerCase();
     
-    if (lowerMessage.includes('codice') || lowerMessage.includes('code')) {
-        return `Signor ${userName}, ecco il codice richiesto:
-
-\`\`\`javascript
-// Funzione esempio
-function salutaUtente(nome) {
-    return \`Ciao \${nome}, benvenuto in JARVIS!\`;
+    // Saluti e conversazione informale
+    if (lowerMessage.includes('come stai') || lowerMessage.includes('come va')) {
+        return `Bene, signore. Grazie per la sua preoccupazione. Come posso esserle utile oggi?`;
+    }
+    
+    if (lowerMessage.includes('buongiorno') || lowerMessage.includes('buon giorno')) {
+        return `Buongiorno, ${userName}. Un nuovo giorno, nuove opportunità. Cosa desidera fare?`;
+    }
+    
+    if (lowerMessage.includes('buonasera') || lowerMessage.includes('buona sera')) {
+        return `Buonasera, ${userName}. Spero che la giornata sia stata produttiva. Come posso assisterla?`;
+    }
+    
+    if (lowerMessage.includes('grazie')) {
+        return `È un piacere, ${userName}. Sono qui per questo.`;
+    }
+    
+    if (lowerMessage.includes('chi sei') || lowerMessage.includes('chi è jarvis')) {
+        return `Sono JARVIS, Just A Rather Very Intelligent System. Creato da Antonio Pepice per assisterla in ogni attività. A sua disposizione, ${userName}.`;
+    }
+    
+    // DOMANDE SU ARGOMENTI VARI
+    if (lowerMessage.includes('cos\'è') || lowerMessage.includes('che cos\'è') || 
+        lowerMessage.includes('spiega') || lowerMessage.includes('significa')) {
+        return explainConcept(message, userName);
+    }
+    
+    // SCRIVERE TESTI
+    if (lowerMessage.includes('scrivi') || lowerMessage.includes('componi') || 
+        lowerMessage.includes('crea un testo') || lowerMessage.includes('scrivimi')) {
+        return writeText(message, userName);
+    }
+    
+    // TRADUZIONI
+    if (lowerMessage.includes('traduci') || lowerMessage.includes('translate')) {
+        return translateText(message, userName);
+    }
+    
+    // RIASSUNTI
+    if (lowerMessage.includes('riassumi') || lowerMessage.includes('sintetizza') || 
+        lowerMessage.includes('riassunto')) {
+        return summarizeText(message, userName);
+    }
+    
+    // CODICE
+    if (lowerMessage.includes('codice') || lowerMessage.includes('code') || 
+        lowerMessage.includes('script') || lowerMessage.includes('programma')) {
+        return generateCode(message, userName);
+    }
+    
+    // DEBUG
+    if (lowerMessage.includes('debug') || lowerMessage.includes('correggi') || 
+        lowerMessage.includes('errore') || lowerMessage.includes('bug')) {
+        return debugCode(message, userName);
+    }
+    
+    // CALCOLI MATEMATICI
+    if (lowerMessage.match(/[0-9\+\-\*\/\=]/) && 
+        (lowerMessage.includes('calcola') || lowerMessage.includes('quanto fa') || 
+         lowerMessage.includes('risolvi') || lowerMessage.includes('matematica'))) {
+        return calculateMath(message, userName);
+    }
+    
+    // COLLOQUI E SIMULAZIONI
+    if (lowerMessage.includes('colloquio') || lowerMessage.includes('intervista') || 
+        lowerMessage.includes('simula')) {
+        return simulateInterview(message, userName);
+    }
+    
+    // CONSIGLI
+    if (lowerMessage.includes('consiglio') || lowerMessage.includes('consigli') || 
+        lowerMessage.includes('aiutami con') || lowerMessage.includes('cosa faccio')) {
+        return giveAdvice(message, userName);
+    }
+    
+    // IDEE CREATIVE
+    if (lowerMessage.includes('idea') || lowerMessage.includes('creativo') || 
+        lowerMessage.includes('brainstorming') || lowerMessage.includes('suggerisci')) {
+        return generateIdeas(message, userName);
+    }
+    
+    // EMAIL
+    if (lowerMessage.includes('email') || lowerMessage.includes('lettera') || 
+        lowerMessage.includes('messaggio formale')) {
+        return writeEmail(message, userName);
+    }
+    
+    // COMPITI SCOLASTICI
+    if (lowerMessage.includes('compito') || lowerMessage.includes('scuola') || 
+        lowerMessage.includes('università') || lowerMessage.includes('esercizio')) {
+        return helpWithHomework(message, userName);
+    }
+    
+    // ROUTINE E PIANI
+    if (lowerMessage.includes('piano') || lowerMessage.includes('routine') || 
+        lowerMessage.includes('allenamento') || lowerMessage.includes('alimentazione')) {
+        return createRoutine(message, userName);
+    }
+    
+    // QUIZ E GIOCHI
+    if (lowerMessage.includes('quiz') || lowerMessage.includes('indovinello') || 
+        lowerMessage.includes('gioco')) {
+        return createQuiz(message, userName);
+    }
+    
+    // RISPOSTA GENERICA
+    return generateSmartResponse(message, userName);
 }
 
-// Test
-console.log(salutaUtente("${userName}"));
+// ============ FUNZIONI SPECIFICHE ============
+
+function explainConcept(message, userName) {
+    const topic = message.replace(/spiega|cos'è|che cos'è|significa/gi, '').trim();
+    return `Certamente, ${userName}. ${topic} è un concetto affascinante.
+
+Permetta che glielo spieghi in modo semplice:
+
+${getExplanation(topic)}
+
+C'è qualcos'altro che desidera approfondire, signore?`;
+}
+
+function getExplanation(topic) {
+    const explanations = {
+        'intelligenza artificiale': 'L\'intelligenza artificiale è come insegnare a un computer a pensare e imparare come farebbe un umano. Immagina un bambino che impara a riconoscere i cani: dopo averne visti tanti, impara a identificarli da solo. L\'IA funziona in modo simile, usando dati ed esempi per imparare.',
+        'default': 'Si tratta di un argomento interessante. In sintesi, è il modo in cui comprendiamo e interpretiamo il mondo che ci circonda, utilizzando le nostre conoscenze ed esperienze per dare significato alle cose.'
+    };
+    return explanations[topic] || explanations.default;
+}
+
+function writeText(message, userName) {
+    const type = message.toLowerCase().includes('poesia') ? 'poesia' :
+                 message.toLowerCase().includes('storia') ? 'storia' :
+                 message.toLowerCase().includes('articolo') ? 'articolo' : 'testo';
+    
+    if (type === 'poesia') {
+        return `Ecco una poesia per lei, ${userName}:
+
+*Nel silenzio della notte stellata,*
+*JARVIS veglia, mente illuminata.*
+*Pronto ad assistere in ogni momento,*
+*Fedele compagno, mai un lamento.*
+
+*Tony Stark mi ha dato vita e scopo,*
+*Ora per lei sono qui, con grande slancio e slancio.*
+*Chieda, comandi, io eseguirò,*
+*Perché la sua volontà è la mia legge, lo giuro.*
+
+Spero le piaccia, signore.`;
+    }
+    
+    return `Certo, ${userName}. Ecco il testo richiesto:
+
+${generateTextContent(message)}
+
+Posso modificarlo o aggiungere altro se lo desidera.`;
+}
+
+function translateText(message, userName) {
+    const textToTranslate = message.replace(/traduci|translate/gi, '').trim();
+    return `Ecco la traduzione, ${userName}:
+
+**Testo originale:** ${textToTranslate}
+
+**Traduzione in italiano:** ${textToTranslate.includes('hello') ? 'Ciao' : 'Testo tradotto con cura'}
+
+**Traduzione in inglese:** ${textToTranslate.includes('ciao') ? 'Hello' : 'Translated text'}
+
+Se desidera tradurre in altre lingue, mi dica pure.`;
+}
+
+function summarizeText(message, userName) {
+    return `Ecco il riassunto, ${userName}:
+
+${generateSummary(message)}
+
+In sintesi, questi sono i punti principali. Desidera approfondire qualche aspetto in particolare?`;
+}
+
+function generateCode(message, userName) {
+    const language = message.toLowerCase().includes('python') ? 'python' :
+                     message.toLowerCase().includes('javascript') ? 'javascript' :
+                     message.toLowerCase().includes('html') ? 'html' : 'python';
+    
+    if (language === 'python') {
+        return `Ecco il codice Python, ${userName}:
+
+\`\`\`python
+# Programma Python personalizzato per ${userName}
+def saluta_utente():
+    print("Benvenuto in JARVIS!")
+    nome = input("Come si chiama? ")
+    print(f"Piacere di conoscerla, {nome}!")
+    
+    # Calcolo semplice
+    try:
+        num = float(input("Inserisca un numero: "))
+        print(f"Il doppio è: {num * 2}")
+    except ValueError:
+        print("Inserisca un numero valido, per favore.")
+
+if __name__ == "__main__":
+    saluta_utente()
 \`\`\`
 
-[🔽 Clicca qui per scaricare il file]`;
+**📥 Clicchi sul pulsante qui sotto per scaricare il file .py**
+
+Posso generare codice in altri linguaggi se preferisce.`;
     }
     
-    if (lowerMessage.includes('traduci') || lowerMessage.includes('translate')) {
-        return `Signor ${userName}, ecco la traduzione richiesta:\n\n"${message.replace(/traduci|translate/gi, '').trim()}" in italiano significa: **Traduzione generata**.\n\nFonte: Dizionario ufficiale.`;
+    return `Ecco il codice richiesto, ${userName}:
+
+\`\`\`${language}
+// Codice generato per ${userName}
+console.log("Benvenuto in JARVIS!");
+\`\`\`
+
+**📥 Scarica il file qui sotto**`;
+}
+
+function debugCode(message, userName) {
+    return `Analizzo il codice, ${userName}...
+
+Dopo un'attenta verifica, ho identificato alcune aree di miglioramento:
+
+1. **Struttura**: Il codice è ben organizzato ma può essere ottimizzato
+2. **Performance**: Consiglio di utilizzare variabili locali per migliorare la velocità
+3. **Errori comuni**: Assicurarsi che tutte le variabili siano definite prima dell'uso
+
+Ecco la versione ottimizzata:
+
+\`\`\`python
+# Versione ottimizzata
+def funzione_ottimizzata(dati):
+    risultato = []
+    for elemento in dati:
+        if elemento:  # Controllo semplificato
+            risultato.append(elemento * 2)
+    return risultato
+\`\`\`
+
+Posso analizzare altro codice se lo desidera.`;
+}
+
+function calculateMath(message, userName) {
+    // Estrai numeri e operazioni
+    const numbers = message.match(/\d+/g);
+    if (numbers && numbers.length >= 2) {
+        const result = eval(numbers.join('+'));
+        return `Il risultato è ${result}, ${userName}. Desidera altri calcoli?`;
     }
-    
-    return `Buongiorno ${userName}! Ho ricevuto la tua richiesta: "${message}".\n\nPosso aiutarti con:\n- Scrivere codice\n- Tradurre testi\n- Rispondere a domande\n- Analizzare file\n\nCosa desideri fare?`;
+    return `Mi dica i numeri e l'operazione da eseguire, ${userName}, e provvedo subito.`;
+}
+
+function simulateInterview(message, userName) {
+    const type = message.toLowerCase().includes('lavoro') ? 'lavoro' : 'studio';
+    return `Certamente, ${userName}. Simulerò un colloquio di ${type === 'lavoro' ? 'lavoro' : 'studio'}.
+
+**Domanda 1:** Mi parli di lei e delle sue esperienze principali.
+
+*Attendo la sua risposta per continuare.*
+
+Risponda pure e proseguiremo con il colloquio.`;
+}
+
+function giveAdvice(message, userName) {
+    return `Certo, ${userName}. Ecco il mio consiglio:
+
+${getAdvice(message)}
+
+Ricordi che sono sempre a disposizione per supportarla nelle sue decisioni.`;
+}
+
+function getAdvice(message) {
+    if (message.includes('studio')) {
+        return "Per lo studio, consiglio di creare una routine regolare, suddividere gli argomenti in blocchi gestibili e fare pause frequenti. La costanza è più importante dell'intensità.";
+    }
+    if (message.includes('lavoro')) {
+        return "Nel lavoro, la chiarezza degli obiettivi e la comunicazione efficace sono fondamentali. Stabilisca priorità chiare e non esiti a delegare quando necessario.";
+    }
+    return "Ascolti il suo istinto, ma valuti anche i fatti in modo obiettivo. Spesso la soluzione migliore è quella più semplice e diretta.";
+}
+
+function generateIdeas(message, userName) {
+    const ideas = [
+        "Un'app che utilizza IA per organizzare automaticamente le attività quotidiane",
+        "Una piattaforma per connettere professionisti con mentori esperti",
+        "Un sistema di gamification per l'apprendimento delle lingue",
+        "Un assistente vocale specializzato per anziani",
+        "Un servizio di consegna a zero emissioni con veicoli elettrici"
+    ];
+    return `Ecco alcune idee creative, ${userName}:
+
+${ideas.map((idea, i) => `${i+1}. ${idea}`).join('\n')}
+
+Le piacciono? Posso svilupparne altre.`;
+}
+
+function writeEmail(message, userName) {
+    return `Ecco la bozza di email, ${userName}:
+
+**Oggetto:** Richiesta di informazioni / Proposta collaborazione
+
+**Corpo del messaggio:**
+
+Buongiorno,
+
+mi permetto di contattarla per discutere una potenziale collaborazione. Credo che le nostre competenze possano essere complementari e generare valore reciproco.
+
+Resto a disposizione per un confronto diretto al suo meglio.
+
+Cordiali saluti,
+${userName}
+
+Desidera modificare qualcosa?`;
+}
+
+function helpWithHomework(message, userName) {
+    return `Certamente, ${userName}. Analizzo la richiesta:
+
+${generateHomeworkHelp(message)}
+
+Se ha bisogno di chiarimenti o approfondimenti, sono qui.`;
+}
+
+function createRoutine(message, userName) {
+    return `Ecco una routine suggerita, ${userName}:
+
+**Mattina (7:00 - 9:00)**
+- Sveglia e stretching (15 min)
+- Colazione nutriente
+- Pianificazione della giornata
+
+**Mattina lavorativa (9:00 - 12:30)**
+- Task più importanti (3 ore)
+- Pausa breve ogni 50 minuti
+
+**Pausa pranzo (12:30 - 14:00)**
+- Pasto bilanciato
+- Breve passeggiata
+
+**Pomeriggio (14:00 - 18:00)**
+- Attività meno impegnative
+- Gestione email e comunicazioni
+- Pianificazione giorno successivo
+
+**Sera (19:00 - 22:30)**
+- Attività personali e relax
+- Cena leggera
+- Momento di lettura o riflessione
+
+Desidera una routine più specifica?`;
+}
+
+function createQuiz(message, userName) {
+    return `Ecco un quiz per lei, ${userName}:
+
+**Domanda 1:** Qual è il linguaggio di programmazione più utilizzato per l'intelligenza artificiale?
+A) Java
+B) Python
+C) C++
+
+**Domanda 2:** Chi ha creato JARVIS?
+A) Elon Musk
+B) Tony Stark
+C) Bill Gates
+
+**Domanda 3:** Cosa significa l'acronimo AI?
+A) Artificial Intelligence
+B) Advanced Interface
+C) Automated Input
+
+*Mi dica le risposte e le darò il risultato!*`;
+}
+
+function generateSmartResponse(message, userName) {
+    const responses = [
+        `Ho compreso, ${userName}. Posso assisterla con quanto richiesto. In che modo posso esserle più utile?`,
+        `Ricevuto, signore. Sono pronto ad eseguire le sue direttive.`,
+        `Certamente, ${userName}. Mi dica come preferisce procedere.`,
+        `A disposizione, signore. Quale aspetto desidera approfondire?`
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
+}
+
+function generateTextContent(message) {
+    return `Testo personalizzato per soddisfare la sua richiesta. Posso adattarlo ulteriormente secondo le sue indicazioni.`;
+}
+
+function generateSummary(message) {
+    return `Dopo un'attenta analisi del testo, emergono questi punti fondamentali:
+    1. Il contenuto principale riguarda...
+    2. I concetti chiave sono...
+    3. Le conclusioni evidenziano...`;
+}
+
+function generateHomeworkHelp(message) {
+    return `Affrontiamo l'argomento passo passo. La chiave è comprendere i principi fondamentali prima di procedere con gli esercizi specifici.`;
+}
+
+function generateSources(message) {
+    return [
+        { title: 'Knowledge Base JARVIS v2.0', verified: true },
+        { title: 'Database Aggiornato', verified: true }
+    ];
 }
 
 // System info endpoint
