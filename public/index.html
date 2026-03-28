@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>JARVIS - Iron Man AI - Sistema di Sicurezza Avanzato</title>
+    <title>J.A.R.V.I.S. - Sistema di Sicurezza Avanzato</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
@@ -59,14 +59,6 @@
                 <span></span>
             </button>
             
-            <!-- DROPDOWN MENU FOR PC -->
-            <div class="dropdown-menu">
-                <select id="conversationsDropdown" class="conversations-dropdown" onchange="window.jarvis.loadConversationFromDropdown(this.value)">
-                    <option value="">-- Seleziona una conversazione --</option>
-                </select>
-                <button onclick="window.jarvis.createNewChat()" class="new-chat-btn">+ NUOVA</button>
-            </div>
-            
             <!-- SIDEBAR MENU -->
             <div id="sidebar" class="sidebar">
                 <div class="sidebar-header">
@@ -75,8 +67,16 @@
                 </div>
                 <div class="conversations-header">
                     <h3>💬 STORICO CHAT</h3>
+                    <button onclick="window.jarvis.createNewChat()" class="new-chat-btn-sidebar">+ NUOVA</button>
                 </div>
                 <div id="conversationsList"></div>
+            </div>
+            
+            <!-- DROPDOWN MENU PER PC -->
+            <div class="dropdown-menu">
+                <select id="conversationsDropdown" class="conversations-dropdown" onchange="window.jarvis.loadConversationFromDropdown(this.value)">
+                    <option value="">-- Seleziona una conversazione --</option>
+                </select>
             </div>
             
             <!-- OVERLAY PER CHIUDERE IL MENU -->
@@ -133,7 +133,7 @@
                             <div class="capability">📝 RIASSUNTO INTELLIGENTE</div>
                             <div class="capability">🐛 DEBUG AVANZATO</div>
                             <div class="capability">🎓 STUDIO E DIDATTICA</div>
-                            <div class="capability">💡 CREATIVITÀ E IDEe</div>
+                            <div class="capability">💡 CREATIVITÀ E IDEE</div>
                             <div class="capability">📊 ANALISI DATI</div>
                             <div class="capability">🔊 COMANDI VOCALI</div>
                             <div class="capability">🎤 MICROFONO</div>
@@ -144,7 +144,7 @@
                     </div>
                     
                     <div class="security-footer-bar">
-                        <span>🔐 Crittografia </span>
+                        <span>🔐 Crittografia AES-256</span>
                         <span>📋 Audit Log Attivo</span>
                         <span>👤 Solo Account Autorizzato</span>
                     </div>

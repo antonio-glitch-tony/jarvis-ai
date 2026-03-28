@@ -236,8 +236,8 @@ class JarvisInterface {
                     this.currentConversationId = data.conversationId;
                     await this.typeMessage(`📄 **Analisi file: ${file.name}**\n\n${data.response}`, data.sources || []);
                     this.speak(data.response);
-                    await this.loadConversations(); // Ricarica lo storico
-                    this.updateActiveConversation(); // Aggiorna UI
+                    await this.loadConversations();
+                    this.updateActiveConversation();
                 } else {
                     this.addMessage('JARVIS', `Errore: ${data.error}`, 'system', []);
                 }
@@ -372,11 +372,9 @@ class JarvisInterface {
                 this.currentConversationId = data.conversationId;
                 this.clearMessages();
                 
-                // Messaggio di benvenuto con nome utente
                 const welcomeMsg = `Buongiorno ${this.currentUser.name}! Sono JARVIS, a sua disposizione. Come posso assisterla oggi?`;
                 this.addMessage('JARVIS', welcomeMsg, 'assistant', [], true);
                 
-                // Ricarica la lista conversazioni
                 await this.loadConversations();
                 this.updateActiveConversation();
                 this.userInput.focus();
@@ -391,7 +389,6 @@ class JarvisInterface {
     }
     
     updateActiveConversation() {
-        // Aggiorna la classe active nella lista
         const items = document.querySelectorAll('.conversation-item');
         items.forEach(item => {
             const onclickAttr = item.getAttribute('onclick');
@@ -402,7 +399,6 @@ class JarvisInterface {
             }
         });
         
-        // Aggiorna il dropdown
         if (this.conversationsDropdown) {
             this.conversationsDropdown.value = this.currentConversationId || '';
         }
@@ -442,7 +438,7 @@ class JarvisInterface {
                 this.currentConversationId = data.conversationId;
                 await this.typeMessage(data.response, data.sources || []);
                 this.speak(data.response);
-                await this.loadConversations(); // Ricarica lo storico
+                await this.loadConversations();
                 this.updateActiveConversation();
             } else {
                 this.addMessage('JARVIS', `Errore: ${data.error}`, 'system', [], true);
@@ -503,7 +499,6 @@ class JarvisInterface {
                     clearInterval(interval);
                     contentElement.classList.remove('typing');
                     
-                    // Check for code blocks and add download button
                     if (content.includes('```')) {
                         this.addCodeDownloadButton(contentElement, content);
                     }
@@ -586,7 +581,6 @@ class JarvisInterface {
         this.chatMessages.appendChild(messageDiv);
         if (scrollToBottom) this.scrollToBottom();
         
-        // Add download button for code
         if (content.includes('```')) {
             this.addCodeDownloadButton(messageDiv.querySelector('.message-content'), content);
         }
@@ -656,6 +650,210 @@ class JarvisInterface {
     scrollToBottom() {
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
     }
+    
+    // Profile Functions
+    async showProfile() {
+        const profileHtml = `
+            <div id="profileModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>👤 Il Mio Profilo</h2>
+                        <button onclick="document.getElementById('profileModal').remove()">✕</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="profile-info">
+                            <div class="info-group">
+                                <label>Nome:</label>
+                                <input type="text" id="profileName" value="${this.currentUser.name}">
+                            </div>
+                            <div class="info-group">
+                                <label>Cognome:</label>
+                                <input type="text" id="profileSurname" value="${this.currentUser.surname}">
+                            </div>
+                            <div class="info-group">
+                                <label>Email:</label>
+                                <input type="email" id="profileEmail" value="${this.currentUser.email}" disabled>
+                            </div>
+                            <div class="info-group">
+                                <label>Account creato il:</label>
+                                <input type="text" id="profileCreated" value="${this.currentUser.createdAt || 'N/D'}" disabled>
+                            </div>
+                        </div>
+                        
+                        <div class="security-section">
+                            <h3>🔐 Sicurezza</h3>
+                            <div class="twofa-section">
+                                <label>Autenticazione a due fattori (2FA):</label>
+                                ${this.currentUser.twofaEnabled ? 
+                                    `<button onclick="window.jarvis.disable2FA()" class="btn-danger">Disabilita 2FA</button>` :
+                                    `<button onclick="window.jarvis.setup2FA()" class="btn-primary">Configura 2FA</button>`
+                                }
+                            </div>
+                            
+                            <div class="password-change">
+                                <h4>Cambia Password</h4>
+                                <input type="password" id="currentPassword" placeholder="Password attuale">
+                                <input type="password" id="newPassword" placeholder="Nuova password">
+                                <input type="password" id="confirmPassword" placeholder="Conferma nuova password">
+                                <button onclick="window.jarvis.changePassword()" class="btn-primary">Aggiorna Password</button>
+                            </div>
+                        </div>
+                        
+                        <div class="profile-actions">
+                            <button onclick="window.jarvis.updateProfile()" class="btn-success">💾 Salva Modifiche</button>
+                            <button onclick="window.jarvis.logout()" class="btn-danger">🚪 Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', profileHtml);
+    }
+    
+    async setup2FA() {
+        try {
+            const response = await fetch('/api/auth/setup-2fa', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                const qrHtml = `
+                    <div class="qr-code">
+                        <img src="${data.qrCode}" alt="QR Code">
+                        <p>Scansiona con Google Authenticator</p>
+                        <p>Codice segreto: <strong>${data.secret}</strong></p>
+                    </div>
+                `;
+                
+                const code = prompt('Inserisci il codice generato da Google Authenticator:');
+                if (code) {
+                    const verifyResponse = await fetch('/api/auth/enable-2fa', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ token: code })
+                    });
+                    
+                    const verifyData = await verifyResponse.json();
+                    if (verifyData.success) {
+                        alert('✅ 2FA abilitato con successo!');
+                        this.currentUser.twofaEnabled = true;
+                        document.getElementById('profileModal')?.remove();
+                        this.showProfile();
+                    } else {
+                        alert('❌ Codice non valido');
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Errore setup 2FA:', error);
+            alert('Errore durante la configurazione 2FA');
+        }
+    }
+    
+    async disable2FA() {
+        if (confirm('Sei sicuro di voler disabilitare l\'autenticazione a due fattori?')) {
+            try {
+                const response = await fetch('/api/auth/disable-2fa', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${this.token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('✅ 2FA disabilitato');
+                    this.currentUser.twofaEnabled = false;
+                    document.getElementById('profileModal')?.remove();
+                    this.showProfile();
+                }
+            } catch (error) {
+                console.error('Errore disable 2FA:', error);
+            }
+        }
+    }
+    
+    async updateProfile() {
+        const name = document.getElementById('profileName')?.value;
+        const surname = document.getElementById('profileSurname')?.value;
+        
+        try {
+            const response = await fetch('/api/auth/update-profile', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, surname })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                alert('✅ Profilo aggiornato!');
+                this.currentUser.name = name;
+                this.currentUser.surname = surname;
+            } else {
+                alert('❌ Errore: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Errore update profile:', error);
+        }
+    }
+    
+    async changePassword() {
+        const currentPassword = document.getElementById('currentPassword')?.value;
+        const newPassword = document.getElementById('newPassword')?.value;
+        const confirmPassword = document.getElementById('confirmPassword')?.value;
+        
+        if (!currentPassword || !newPassword) {
+            alert('Compila tutti i campi');
+            return;
+        }
+        
+        if (newPassword !== confirmPassword) {
+            alert('Le nuove password non coincidono');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/auth/update-profile', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ currentPassword, newPassword })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                alert('✅ Password aggiornata!');
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+            } else {
+                alert('❌ ' + data.error);
+            }
+        } catch (error) {
+            console.error('Errore change password:', error);
+        }
+    }
+    
+    logout() {
+        localStorage.removeItem('jarvis_token');
+        window.location.reload();
+    }
 }
 
 // Auth Functions
@@ -683,6 +881,12 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
     const messageDiv = document.getElementById('authMessage');
+    
+    // Controllo email autorizzata
+    if (email !== 'antonio.pepice08@gmail.com') {
+        messageDiv.innerHTML = '<span style="color: #ff4444;">❌ Solo l\'email autorizzata può accedere</span>';
+        return;
+    }
     
     try {
         const response = await fetch('/api/auth/login', {
@@ -713,6 +917,12 @@ document.getElementById('registerForm')?.addEventListener('submit', async (e) =>
     const email = document.getElementById('regEmail').value;
     const password = document.getElementById('regPassword').value;
     const messageDiv = document.getElementById('authMessage');
+    
+    // Controllo email autorizzata
+    if (email !== 'antonio.pepice08@gmail.com') {
+        messageDiv.innerHTML = '<span style="color: #ff4444;">❌ Solo l\'email autorizzata può registrarsi</span>';
+        return;
+    }
     
     try {
         const response = await fetch('/api/auth/register', {
