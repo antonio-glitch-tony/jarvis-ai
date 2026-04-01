@@ -1,22 +1,52 @@
 /* ═══════════════════════════════════════════════════════════
-   J.A.R.V.I.S. — Controller (Solo Google Authenticator + Fingerprint)
+   J.A.R.V.I.S. — Controller v2.0 SYNC EDITION
+   Le chat sono legate all'account via JWT.
+   Ogni dispositivo vede e modifica le stesse chat.
    ═══════════════════════════════════════════════════════════ */
 const aiService = require('../services/aiService');
-const chatDB = require('../database/chatDB');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const chatDB    = require('../database/chatDB');
+const bcrypt    = require('bcryptjs');
+const jwt       = require('jsonwebtoken');
 const speakeasy = require('speakeasy');
-const qrcode = require('qrcode');
+const qrcode    = require('qrcode');
 
 const ALLOWED_EMAIL = 'antonio.pepice08@gmail.com';
-const JWT_SECRET = process.env.JWT_SECRET || 'jarvis_secret_key_2024';
+const JWT_SECRET    = process.env.JWT_SECRET || 'jarvis_secret_key_2024';
+
+/* ── Helper: estrae userId dal token JWT nell'header Authorization ── */
+function getUserIdFromReq(req) {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader) return null;
+    try {
+        const token   = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, JWT_SECRET);
+        // Usa l'email normalizzata come userId stabile (univoco per account)
+        return decoded.email ? decoded.email.trim().toLowerCase() : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+/* ── Middleware leggero per proteggere le route chat ── */
+function requireAuth(req, res, next) {
+    const userId = getUserIdFromReq(req);
+    if (!userId) return res.status(401).json({ error: 'Autenticazione richiesta' });
+    req.userId = userId;
+    next();
+}
 
 class JarviController {
 
+    /* ══════════════════════════════════
+       CHAT — sincronizzate per account
+    ══════════════════════════════════ */
+
     async newChat(req, res) {
         try {
+            const userId = getUserIdFromReq(req);
+            if (!userId) return res.status(401).json({ error: 'Autenticazione richiesta' });
             const { title } = req.body;
-            const conversationId = await chatDB.createConversation(title);
+            const conversationId = await chatDB.createConversation(userId, title);
             res.json({ success: true, conversationId });
         } catch (e) {
             res.status(500).json({ error: e.message });
@@ -25,18 +55,27 @@ class JarviController {
 
     async chatWithHistory(req, res) {
         try {
+            const userId = getUserIdFromReq(req);
+            if (!userId) return res.status(401).json({ error: 'Autenticazione richiesta' });
+
             const { conversationId, message, options } = req.body;
             if (!message) return res.status(400).json({ error: 'Message is required' });
 
             let convId = conversationId;
+
             if (!convId) {
-                convId = await chatDB.createConversation(message.substring(0, 50));
+                // Nuova conversazione — titolo = primo messaggio troncato
+                convId = await chatDB.createConversation(userId, message.substring(0, 50));
+            } else {
+                // Verifica che la conversazione appartenga all'utente
+                const owned = await chatDB.conversationBelongsToUser(convId, userId);
+                if (!owned) return res.status(403).json({ error: 'Accesso negato a questa conversazione' });
             }
 
             await chatDB.saveMessage(convId, 'user', message);
             chatDB.updateConversationTime(convId);
 
-            const history = await chatDB.getMessages(convId);
+            const history  = await chatDB.getMessages(convId);
             const messages = history.map(m => ({ role: m.role, content: m.content }));
 
             const result = await aiService.sendMessage(messages, options || {});
@@ -53,9 +92,12 @@ class JarviController {
         }
     }
 
+    /* Restituisce SOLO le conversazioni di questo account (cross-device sync) */
     async getConversations(req, res) {
         try {
-            const conversations = await chatDB.getConversations();
+            const userId = getUserIdFromReq(req);
+            if (!userId) return res.status(401).json({ error: 'Autenticazione richiesta' });
+            const conversations = await chatDB.getConversations(userId);
             res.json({ success: true, conversations });
         } catch (e) {
             res.status(500).json({ error: e.message });
@@ -64,22 +106,31 @@ class JarviController {
 
     async getConversation(req, res) {
         try {
+            const userId = getUserIdFromReq(req);
+            if (!userId) return res.status(401).json({ error: 'Autenticazione richiesta' });
+
             const { id } = req.params;
-            const messages = await chatDB.getMessages(id);
-            const conversations = await chatDB.getConversations();
-            const conversation = conversations.find(c => c.id == id);
+            const owned  = await chatDB.conversationBelongsToUser(id, userId);
+            if (!owned) return res.status(403).json({ error: 'Accesso negato' });
+
+            const messages      = await chatDB.getMessages(id);
+            const conversations = await chatDB.getConversations(userId);
+            const conversation  = conversations.find(c => c.id == id);
             res.json({ success: true, conversation, messages });
         } catch (e) {
             res.status(500).json({ error: e.message });
         }
     }
 
+    /* Elimina definitivamente la conversazione (per tutti i dispositivi) */
     async deleteConversation(req, res) {
         try {
-            await chatDB.deleteConversation(req.params.id);
-            res.json({ success: true });
+            const userId = getUserIdFromReq(req);
+            if (!userId) return res.status(401).json({ error: 'Autenticazione richiesta' });
+            await chatDB.deleteConversation(req.params.id, userId);
+            res.json({ success: true, message: 'Conversazione eliminata definitivamente' });
         } catch (e) {
-            res.status(500).json({ error: e.message });
+            res.status(e.message.includes('Non autorizzato') ? 403 : 500).json({ error: e.message });
         }
     }
 
@@ -94,10 +145,12 @@ class JarviController {
             } else {
                 res.status(500).json({ error: result.error });
             }
-        } catch (e) {
-            res.status(500).json({ error: e.message });
-        }
+        } catch (e) { res.status(500).json({ error: e.message }); }
     }
+
+    /* ══════════════════════════════════
+       FUNZIONI SPECIALI
+    ══════════════════════════════════ */
 
     async translate(req, res) {
         try {
@@ -156,7 +209,7 @@ class JarviController {
 
     async switchModel(req, res) {
         try {
-            const config = require('../../config/config');
+            const config   = require('../../config/config');
             const { modelKey } = req.body;
             if (config.models[modelKey]) {
                 aiService.defaultModel = config.models[modelKey];
@@ -174,207 +227,164 @@ class JarviController {
                 success: true,
                 date: now.toLocaleDateString('it-IT'),
                 time: now.toLocaleTimeString('it-IT'),
-                day: now.toLocaleDateString('it-IT', { weekday: 'long' })
+                day:  now.toLocaleDateString('it-IT', { weekday: 'long' })
             });
         } catch (e) { res.status(500).json({ error: e.message }); }
     }
 
-    // ============ AUTH (SENZA CODICE EMAIL) ============
-    
-    // REGISTRAZIONE - Step 1: crea utente e genera QR per Google Authenticator
+    /* ══════════════════════════════════
+       AUTH
+    ══════════════════════════════════ */
+
+    async registerSendCode(req, res) {
+        try {
+            res.json({ success: true, message: 'Procedi con la registrazione completa.' });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    }
+
     async register(req, res) {
         try {
             const { name, surname, email, password, secretWord, fingerprint } = req.body;
-            
+
             if (!name || !surname || !email || !password || !secretWord || !fingerprint) {
                 return res.status(400).json({ error: 'Tutti i campi obbligatori (nome, cognome, email, password, parola segreta, fingerprint)' });
             }
 
             const normalizedEmail = email.trim().toLowerCase();
-
             if (normalizedEmail !== ALLOWED_EMAIL) {
                 return res.status(403).json({ error: 'Email non autorizzata.' });
             }
 
-            // Hash delle credenziali
-            const hashedPassword = await bcrypt.hash(password, 10);
+            const hashedPassword  = await bcrypt.hash(password, 10);
             const hashedSecretWord = await bcrypt.hash(secretWord, 10);
 
-            // Genera secret per Google Authenticator
             const secret = speakeasy.generateSecret({
-                name: `JARVIS (${normalizedEmail})`,
-                length: 20
+                name:   `J.A.R.V.I.S. (${normalizedEmail})`,
+                length: 32
             });
 
-            // Salva utente in memoria (in produzione usare database)
             if (!global._users) global._users = {};
-            
             global._users[normalizedEmail] = {
-                name,
-                surname,
+                name, surname,
                 email: normalizedEmail,
                 password: hashedPassword,
                 secretWord: hashedSecretWord,
                 fingerprint,
-                gaSecret: secret.base32,
-                twofaEnabled: true,
-                createdAt: Date.now()
+                gaSecret:      secret.base32,
+                twofaEnabled:  true,
+                completed:     false,
+                registeredAt:  null
             };
 
-            // Genera QR code
-            const qrCode = await qrcode.toDataURL(secret.otpauth_url);
+            const qrDataUrl = await qrcode.toDataURL(secret.otpauth_url);
+            console.log(`📝 Registrazione iniziata: ${normalizedEmail}`);
 
-            console.log(`🎉 Utente registrato: ${normalizedEmail}`);
-            console.log(`🔐 Secret TOTP: ${secret.base32}`);
-
-            res.json({ 
-                success: true, 
-                requiresGoogleAuth: true, 
-                qrCode,
-                message: 'Scansiona il QR code con Google Authenticator'
+            res.json({
+                success: true,
+                qrCode:  qrDataUrl,
+                secret:  secret.base32,
+                message: 'Scansiona il QR con Google Authenticator'
             });
-
         } catch (e) {
             console.error('Errore register:', e);
             res.status(500).json({ error: e.message });
         }
     }
 
-    // REGISTRAZIONE - Step 2: verifica Google Authenticator e completa
     async verifyGoogleAuth(req, res) {
         try {
             const { email, gaCode } = req.body;
-            if (!email || !gaCode) {
-                return res.status(400).json({ error: 'Email e codice Google Auth richiesti' });
-            }
+            if (!email || !gaCode) return res.status(400).json({ error: 'Email e codice GA richiesti' });
 
             const normalizedEmail = email.trim().toLowerCase();
             const user = global._users?.[normalizedEmail];
 
-            if (!user) {
-                return res.status(400).json({ error: 'Utente non trovato. Ricomincia la registrazione.' });
-            }
+            if (!user) return res.status(400).json({ error: 'Utente non trovato. Registrati prima.' });
+            if (user.completed) return res.status(400).json({ error: 'Utente già registrato. Procedi con il login.' });
 
-            if (user.completed) {
-                return res.status(400).json({ error: 'Utente già registrato. Procedi con il login.' });
-            }
-
-            // Verifica codice TOTP
             const verified = speakeasy.totp.verify({
-                secret: user.gaSecret,
-                encoding: 'base32',
-                token: gaCode.toString().trim(),
-                window: 1
+                secret: user.gaSecret, encoding: 'base32',
+                token:  gaCode.toString().trim(), window: 1
             });
+            if (!verified) return res.status(400).json({ error: 'Codice Google Authenticator non valido' });
 
-            if (!verified) {
-                return res.status(400).json({ error: 'Codice Google Authenticator non valido' });
-            }
-
-            // Marca utente come completato
-            user.completed = true;
+            user.completed    = true;
             user.registeredAt = Date.now();
+            console.log(`✅ Registrazione completata: ${normalizedEmail}`);
 
-            console.log(`✅ Registrazione completata con 2FA: ${normalizedEmail}`);
-
-            // Genera token JWT
             const token = jwt.sign(
                 { email: normalizedEmail, name: user.name },
                 JWT_SECRET,
                 { expiresIn: '7d' }
             );
-
-            res.json({ 
-                success: true, 
-                token, 
-                message: 'Benvenuto in JARVIS! Autenticazione a due fattori attiva.' 
-            });
-
+            res.json({ success: true, token, message: 'Benvenuto in JARVIS! 2FA attiva.' });
         } catch (e) {
             console.error('Errore verifyGoogleAuth:', e);
             res.status(500).json({ error: e.message });
         }
     }
 
-    // LOGIN con password + parola segreta + fingerprint + 2FA
+    async registerConfirmGA(req, res) {
+        return this.verifyGoogleAuth(req, res);
+    }
+
     async login(req, res) {
         try {
             const { email, password, secretWord, fingerprint, token } = req.body;
-
             if (!email || !password || !secretWord || !fingerprint) {
                 return res.status(400).json({ error: 'Email, password, parola segreta e fingerprint richiesti' });
             }
 
             const normalizedEmail = email.trim().toLowerCase();
-
             if (normalizedEmail !== ALLOWED_EMAIL) {
                 return res.status(403).json({ error: 'Email non autorizzata.' });
             }
 
             const user = global._users?.[normalizedEmail];
-
             if (!user || !user.completed) {
                 return res.status(400).json({ error: 'Utente non trovato. Devi prima registrarti.' });
             }
 
-            // Verifica password
             const validPassword = await bcrypt.compare(password, user.password);
-            if (!validPassword) {
-                return res.status(400).json({ error: 'Password errata' });
-            }
+            if (!validPassword) return res.status(400).json({ error: 'Password errata' });
 
-            // Verifica parola segreta
             const validSecretWord = await bcrypt.compare(secretWord, user.secretWord);
-            if (!validSecretWord) {
-                return res.status(400).json({ error: 'Parola segreta errata' });
-            }
+            if (!validSecretWord) return res.status(400).json({ error: 'Parola segreta errata' });
 
-            // Verifica fingerprint
             if (user.fingerprint !== fingerprint) {
                 return res.status(400).json({ error: 'Impronta digitale non riconosciuta' });
             }
 
-            // Se 2FA è attivo e non c'è il token, richiedilo
             if (user.twofaEnabled && !token) {
                 return res.json({ requiresTwoFactor: true });
             }
 
-            // Verifica codice 2FA
             if (user.twofaEnabled && token) {
                 const verified = speakeasy.totp.verify({
-                    secret: user.gaSecret,
-                    encoding: 'base32',
-                    token: token.toString().trim(),
-                    window: 1
+                    secret: user.gaSecret, encoding: 'base32',
+                    token:  token.toString().trim(), window: 1
                 });
-
-                if (!verified) {
-                    return res.status(400).json({ error: 'Codice 2FA non valido' });
-                }
+                if (!verified) return res.status(400).json({ error: 'Codice 2FA non valido' });
             }
 
-            // Genera token JWT
             const jwtToken = jwt.sign(
                 { email: normalizedEmail, name: user.name },
                 JWT_SECRET,
                 { expiresIn: '7d' }
             );
-
-            console.log(`🔐 Login effettuato: ${normalizedEmail}`);
+            console.log(`🔐 Login: ${normalizedEmail}`);
             res.json({ success: true, token: jwtToken });
-
         } catch (e) {
             console.error('Errore login:', e);
             res.status(500).json({ error: e.message });
         }
     }
 
-    // RECOVER - Reset password (semplificato)
     async recover(req, res) {
         try {
             const { email } = req.body;
             if (!email) return res.status(400).json({ error: 'Email richiesta' });
-            res.json({ success: true, message: 'Contatta l\'amministratore per il reset della password.' });
+            res.json({ success: true, message: "Contatta l'amministratore per il reset." });
         } catch (e) { res.status(500).json({ error: e.message }); }
     }
 
@@ -382,13 +392,10 @@ class JarviController {
         try {
             const { email, newPassword } = req.body;
             const normalizedEmail = email.trim().toLowerCase();
-            
             if (global._users?.[normalizedEmail]) {
-                const hashedPassword = await bcrypt.hash(newPassword, 10);
-                global._users[normalizedEmail].password = hashedPassword;
-                console.log(`✅ Password resettata per: ${normalizedEmail}`);
+                global._users[normalizedEmail].password = await bcrypt.hash(newPassword, 10);
+                console.log(`✅ Password resettata: ${normalizedEmail}`);
             }
-            
             res.json({ success: true, message: 'Password aggiornata.' });
         } catch (e) { res.status(500).json({ error: e.message }); }
     }
@@ -398,15 +405,15 @@ class JarviController {
             const { email, currentPassword, newPassword } = req.body;
             const normalizedEmail = email.trim().toLowerCase();
             const user = global._users?.[normalizedEmail];
-            
             if (user) {
                 const valid = await bcrypt.compare(currentPassword, user.password);
                 if (valid) {
                     user.password = await bcrypt.hash(newPassword, 10);
-                    console.log(`✅ Password cambiata per: ${normalizedEmail}`);
+                    console.log(`✅ Password cambiata: ${normalizedEmail}`);
+                } else {
+                    return res.status(400).json({ error: 'Password attuale errata' });
                 }
             }
-            
             res.json({ success: true, message: 'Password aggiornata.' });
         } catch (e) { res.status(500).json({ error: e.message }); }
     }
@@ -418,14 +425,14 @@ class JarviController {
             if (!token) return res.status(401).json({ error: 'No token' });
 
             const decoded = jwt.verify(token, JWT_SECRET);
-            const user = global._users?.[decoded.email];
-            
+            const user    = global._users?.[decoded.email];
+
             res.json({
                 success: true,
                 user: {
-                    name: user?.name || 'Antonio',
-                    surname: user?.surname || 'Pepice',
-                    email: decoded.email,
+                    name:          user?.name    || 'Antonio',
+                    surname:       user?.surname || 'Pepice',
+                    email:         decoded.email,
                     twofa_enabled: true
                 }
             });
@@ -442,7 +449,7 @@ class JarviController {
             if (token) {
                 const decoded = jwt.verify(token, JWT_SECRET);
                 if (global._users?.[decoded.email]) {
-                    global._users[decoded.email].name = name;
+                    global._users[decoded.email].name    = name;
                     global._users[decoded.email].surname = surname;
                 }
             }
@@ -450,13 +457,8 @@ class JarviController {
         } catch (e) { res.status(500).json({ error: e.message }); }
     }
 
-    githubLogin(req, res) {
-        res.status(410).json({ error: 'Accesso GitHub rimosso.' });
-    }
-
-    async githubCallback(req, res) {
-        res.redirect('/');
-    }
+    githubLogin(req, res) { res.status(410).json({ error: 'Accesso GitHub rimosso.' }); }
+    async githubCallback(req, res) { res.redirect('/'); }
 }
 
 module.exports = new JarviController();
