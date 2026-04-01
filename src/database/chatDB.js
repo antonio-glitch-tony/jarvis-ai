@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   J.A.R.V.I.S. — Chat Database (SQLite) — v2.0 SYNC EDITION
+   J.A.R.V.I.S. — Chat Database (SQLite) — v2.1 SYNC EDITION
    Le conversazioni sono legate all'account (user_id).
    Eliminare una chat la rimuove definitivamente per tutti i dispositivi.
    ═══════════════════════════════════════════════════════════ */
@@ -46,22 +46,92 @@ class ChatDatabase {
         this.db.run('PRAGMA journal_mode=WAL');
         this.db.run('PRAGMA foreign_keys=ON');
 
-        // conversations: aggiunta colonna user_id per la sincronizzazione account
-        this.db.run(`
-            CREATE TABLE IF NOT EXISTS conversations (
-                id         INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id    TEXT    NOT NULL,
-                title      TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `, (err) => {
-            if (!err) {
-                // Aggiunge user_id se la tabella esiste già senza (migrazione)
-                this.db.run(`ALTER TABLE conversations ADD COLUMN user_id TEXT NOT NULL DEFAULT 'legacy'`, () => {});
+        // Verifica se la tabella conversations esiste e ha la colonna user_id
+        this.db.get("PRAGMA table_info(conversations)", (err, rows) => {
+            if (err) {
+                console.error('❌ Errore verifica struttura tabella:', err);
+                return;
+            }
+            
+            // rows è un array di oggetti, controlla se esiste user_id
+            const hasUserId = rows && Array.isArray(rows) && rows.some(col => col.name === 'user_id');
+            
+            if (!hasUserId && rows && rows.length > 0) {
+                // La tabella esiste ma non ha user_id - migrazione necessaria
+                console.log('🔄 Migrazione database: aggiunta colonna user_id...');
+                
+                // Rinomina tabella esistente
+                this.db.run(`ALTER TABLE conversations RENAME TO conversations_old`, (renameErr) => {
+                    if (renameErr) {
+                        console.error('❌ Errore rename tabella:', renameErr);
+                        return;
+                    }
+                    
+                    // Crea nuova tabella con struttura corretta
+                    this.db.run(`
+                        CREATE TABLE conversations (
+                            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id    TEXT NOT NULL DEFAULT 'legacy',
+                            title      TEXT,
+                            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                        )
+                    `, (createErr) => {
+                        if (createErr) {
+                            console.error('❌ Errore creazione nuova tabella:', createErr);
+                            return;
+                        }
+                        
+                        // Migra i dati esistenti (user_id sarà 'legacy' per i vecchi record)
+                        this.db.run(`
+                            INSERT INTO conversations (id, title, created_at, updated_at)
+                            SELECT id, title, created_at, updated_at FROM conversations_old
+                        `, (migrateErr) => {
+                            if (migrateErr) {
+                                console.error('❌ Errore migrazione dati:', migrateErr);
+                                return;
+                            }
+                            
+                            // Elimina tabella vecchia
+                            this.db.run(`DROP TABLE conversations_old`, (dropErr) => {
+                                if (dropErr) {
+                                    console.error('❌ Errore drop tabella vecchia:', dropErr);
+                                } else {
+                                    console.log('✅ Migrazione database completata (aggiunta user_id)');
+                                }
+                                
+                                // Continua con la creazione degli indici
+                                this.createRemainingTables();
+                            });
+                        });
+                    });
+                });
+            } else if (!rows || rows.length === 0) {
+                // Tabella non esiste, creala direttamente
+                this.db.run(`
+                    CREATE TABLE IF NOT EXISTS conversations (
+                        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id    TEXT NOT NULL,
+                        title      TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                `, (err) => {
+                    if (err) console.error('❌ Errore creazione tabella conversations:', err);
+                    this.createRemainingTables();
+                });
+            } else {
+                // Tabella esiste già con user_id
+                console.log('✅ Tabella conversations già corretta');
+                this.createRemainingTables();
             }
         });
+    }
 
+    createRemainingTables() {
+        if (!this.isAvailable || !this.db) return;
+        
+        // Crea tabella messages
         this.db.run(`
             CREATE TABLE IF NOT EXISTS messages (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,10 +141,14 @@ class ChatDatabase {
                 created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
             )
-        `);
+        `, (err) => {
+            if (err) console.error('❌ Errore creazione tabella messages:', err);
+        });
 
-        // Indice per accelerare le query per utente
-        this.db.run(`CREATE INDEX IF NOT EXISTS idx_conv_user ON conversations(user_id, updated_at DESC)`);
+        // Crea indice per velocizzare le query per utente
+        this.db.run(`CREATE INDEX IF NOT EXISTS idx_conv_user ON conversations(user_id, updated_at DESC)`, (err) => {
+            if (err) console.error('❌ Errore creazione indice:', err);
+        });
 
         console.log('✅ Tabelle database pronte (sync per account abilitato)');
     }
