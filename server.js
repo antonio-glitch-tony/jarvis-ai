@@ -41,18 +41,38 @@ app.post('/api/models/switch',       harryController.switchModel.bind(harryContr
 app.get('/api/system/info',          harryController.getSystemInfo.bind(harryController));
 
 /* ═══════════════════════════════════════════════════════════
-   Auth Routes
+   Auth Routes - COMPLETE
 ═══════════════════════════════════════════════════════════ */
 app.post('/api/auth/register-send-code',  harryController.registerSendCode.bind(harryController));
 app.post('/api/auth/register',            harryController.register.bind(harryController));
 app.post('/api/auth/register-confirm-ga', harryController.registerConfirmGA.bind(harryController));
+app.post('/api/auth/verify-google-auth',  harryController.verifyGoogleAuth.bind(harryController));  // ROUTA IMPORTANTE!
 app.post('/api/auth/login',               harryController.login.bind(harryController));
 app.post('/api/auth/recover',             harryController.recover.bind(harryController));
 app.post('/api/auth/reset-password',      harryController.resetPassword.bind(harryController));
 app.post('/api/auth/change-password',     harryController.changePassword.bind(harryController));
 app.get('/api/auth/me',                   harryController.me.bind(harryController));
 app.put('/api/auth/profile',              harryController.updateProfile.bind(harryController));
-app.post('/api/auth/verify-google-auth',  harryController.verifyGoogleAuth.bind(harryController));
+
+// Route di debug per resettare utenti (SOLO PER TEST, rimuovere in produzione)
+app.post('/api/auth/debug/reset-users',   (req, res) => {
+    if (global._users) {
+        global._users = {};
+        res.json({ success: true, message: 'Utenti resettati' });
+    } else {
+        res.json({ success: true, message: 'Nessun utente da resettare' });
+    }
+});
+
+// Route per vedere utenti registrati (SOLO PER TEST)
+app.get('/api/auth/debug/users', (req, res) => {
+    const users = global._users ? Object.keys(global._users).map(email => ({
+        email,
+        completed: global._users[email].completed,
+        hasFingerprint: !!global._users[email].fingerprint
+    })) : [];
+    res.json({ success: true, users });
+});
 
 /* ═══════════════════════════════════════════════════════════
    GitHub OAuth — RIMOSSO (non utilizzato)
@@ -69,7 +89,8 @@ app.get('/health', (req, res) => {
         service: 'H.A.R.R.Y.', 
         version: '4.0.0', 
         platform: 'OpenRouter',
-        creator: 'Antonio Pepice'
+        creator: 'Antonio Pepice',
+        uptime: process.uptime()
     });
 });
 
@@ -88,20 +109,39 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Errore interno del server' });
 });
 
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({ error: 'Route non trovata' });
+});
+
 /* ═══════════════════════════════════════════════════════════
    Avvio del server
 ═══════════════════════════════════════════════════════════ */
 const server = http.createServer(app);
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 H.A.R.R.Y. v4.0 running on http://localhost:${PORT}`);
+    console.log('═'.repeat(60));
+    console.log('🚀 H.A.R.R.Y. v4.0 - Hyper-Adaptive Responsive Robotic Intelligence');
+    console.log('═'.repeat(60));
+    console.log(`📡 Server running on http://localhost:${PORT}`);
     console.log(`👨‍💻 Creato da Antonio Pepice`);
-    console.log(`🤖 Assistente AI avanzato - Hyper-Adaptive Responsive Robotic Intelligence`);
+    console.log(`🔐 2FA: Attivo con Google Authenticator`);
+    console.log(`🆔 Fingerprint: SHA-256`);
+    console.log(`🤖 AI Model: OpenRouter`);
+    console.log('═'.repeat(60));
 });
 
 // Gestione chiusura graceful
 process.on('SIGTERM', () => {
     console.log('🛑 SIGTERM ricevuto, chiusura graceful...');
+    server.close(() => {
+        console.log('✅ Server chiuso');
+        process.exit(0);
+    });
+});
+
+process.on('SIGINT', () => {
+    console.log('🛑 SIGINT ricevuto, chiusura graceful...');
     server.close(() => {
         console.log('✅ Server chiuso');
         process.exit(0);

@@ -26,14 +26,6 @@ function getUserIdFromReq(req) {
     }
 }
 
-/* ── Middleware leggero per proteggere le route chat ── */
-function requireAuth(req, res, next) {
-    const userId = getUserIdFromReq(req);
-    if (!userId) return res.status(401).json({ error: 'Autenticazione richiesta' });
-    req.userId = userId;
-    next();
-}
-
 class HarryController {
 
     /* ══════════════════════════════════
@@ -228,7 +220,7 @@ class HarryController {
     }
 
     /* ══════════════════════════════════
-       AUTH
+       AUTH - REGISTRAZIONE FIXATA
     ══════════════════════════════════ */
 
     async registerSendCode(req, res) {
@@ -250,6 +242,11 @@ class HarryController {
                 return res.status(403).json({ error: 'Email non autorizzata.' });
             }
 
+            // Verifica se utente esiste già
+            if (global._users && global._users[normalizedEmail] && global._users[normalizedEmail].completed) {
+                return res.status(400).json({ error: 'Utente già registrato. Procedi con il login.' });
+            }
+
             const hashedPassword  = await bcrypt.hash(password, 10);
             const hashedSecretWord = await bcrypt.hash(secretWord, 10);
 
@@ -259,23 +256,27 @@ class HarryController {
             });
 
             if (!global._users) global._users = {};
+            
             global._users[normalizedEmail] = {
                 name, surname,
                 email: normalizedEmail,
                 password: hashedPassword,
                 secretWord: hashedSecretWord,
-                fingerprint,
+                fingerprint: fingerprint,  // SALVA IL FINGERPRINT
                 gaSecret:      secret.base32,
                 twofaEnabled:  true,
                 completed:     false,
                 registeredAt:  null
             };
 
-            const qrDataUrl = await qrcode.toDataURL(secret.otpauth_url);
             console.log(`📝 Registrazione iniziata: ${normalizedEmail}`);
+            console.log(`🔐 Fingerprint salvato: ${fingerprint.substring(0, 20)}...`);
+
+            const qrDataUrl = await qrcode.toDataURL(secret.otpauth_url);
 
             res.json({
                 success: true,
+                requiresGoogleAuth: true,
                 qrCode:  qrDataUrl,
                 secret:  secret.base32,
                 message: 'Scansiona il QR con Google Authenticator'
@@ -298,9 +299,12 @@ class HarryController {
             if (user.completed) return res.status(400).json({ error: 'Utente già registrato. Procedi con il login.' });
 
             const verified = speakeasy.totp.verify({
-                secret: user.gaSecret, encoding: 'base32',
-                token:  gaCode.toString().trim(), window: 1
+                secret: user.gaSecret,
+                encoding: 'base32',
+                token:  gaCode.toString().trim(),
+                window: 2
             });
+            
             if (!verified) return res.status(400).json({ error: 'Codice Google Authenticator non valido' });
 
             user.completed    = true;
@@ -323,9 +327,17 @@ class HarryController {
         return this.verifyGoogleAuth(req, res);
     }
 
+    /* ══════════════════════════════════
+       LOGIN FIXATO
+    ══════════════════════════════════ */
+
     async login(req, res) {
         try {
             const { email, password, secretWord, fingerprint, token } = req.body;
+            
+            console.log(`🔐 Tentativo login per: ${email}`);
+            console.log(`📱 Fingerprint ricevuto: ${fingerprint ? fingerprint.substring(0, 20) + '...' : 'NON PRESENTE'}`);
+            
             if (!email || !password || !secretWord || !fingerprint) {
                 return res.status(400).json({ error: 'Email, password, parola segreta e fingerprint richiesti' });
             }
@@ -336,6 +348,14 @@ class HarryController {
             }
 
             const user = global._users?.[normalizedEmail];
+            
+            // DEBUG: Mostra utente salvato
+            console.log(`👤 Utente trovato: ${user ? 'SI' : 'NO'}`);
+            if (user) {
+                console.log(`✅ User completato: ${user.completed}`);
+                console.log(`🔐 Fingerprint salvato: ${user.fingerprint ? user.fingerprint.substring(0, 20) + '...' : 'NON SALVATO'}`);
+            }
+            
             if (!user || !user.completed) {
                 return res.status(400).json({ error: 'Utente non trovato. Devi prima registrarti.' });
             }
@@ -346,9 +366,15 @@ class HarryController {
             const validSecretWord = await bcrypt.compare(secretWord, user.secretWord);
             if (!validSecretWord) return res.status(400).json({ error: 'Parola segreta errata' });
 
+            // Confronto fingerprint
             if (user.fingerprint !== fingerprint) {
-                return res.status(400).json({ error: 'Impronta digitale non riconosciuta' });
+                console.log(`❌ Fingerprint mismatch!`);
+                console.log(`   Salvato: ${user.fingerprint}`);
+                console.log(`   Ricevuto: ${fingerprint}`);
+                return res.status(400).json({ error: 'Impronta digitale non riconosciuta. Questo dispositivo non è autorizzato.' });
             }
+            
+            console.log(`✅ Fingerprint match!`);
 
             if (user.twofaEnabled && !token) {
                 return res.json({ requiresTwoFactor: true });
@@ -356,8 +382,10 @@ class HarryController {
 
             if (user.twofaEnabled && token) {
                 const verified = speakeasy.totp.verify({
-                    secret: user.gaSecret, encoding: 'base32',
-                    token:  token.toString().trim(), window: 1
+                    secret: user.gaSecret,
+                    encoding: 'base32',
+                    token:  token.toString().trim(),
+                    window: 2
                 });
                 if (!verified) return res.status(400).json({ error: 'Codice 2FA non valido' });
             }
@@ -367,7 +395,7 @@ class HarryController {
                 JWT_SECRET,
                 { expiresIn: '7d' }
             );
-            console.log(`🔐 Login: ${normalizedEmail}`);
+            console.log(`🔐 Login riuscito: ${normalizedEmail}`);
             res.json({ success: true, token: jwtToken });
         } catch (e) {
             console.error('Errore login:', e);
