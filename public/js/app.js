@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   B.A.R.R.Y. — Frontend App v4.0 CON VERIFICA EMAIL
+   B.A.R.R.Y. — Frontend App v5.0 FIXED
    Autore: Antonio Pepice
    ═══════════════════════════════════════════════════════════ */
 
@@ -75,7 +75,7 @@ async function getCanvasFingerprint() {
         ctx.fillStyle = '#f60';
         ctx.fillRect(0, 0, 100, 40);
         ctx.fillStyle = '#069';
-        ctx.fillText('HARRY', 2, 15);
+        ctx.fillText('BARRY', 2, 15);
         return canvas.toDataURL();
     } catch(e) { return 'canvas_error_' + Date.now(); }
 }
@@ -103,7 +103,7 @@ async function sha256(message) {
 /* ══════════════════════════════════════════════════════════
    HOLOGRAM STYLE
 ══════════════════════════════════════════════════════════ */
-class HarryHologram {
+class BarryHologram {
     constructor(canvasId, size = 380) {
         this.canvas = document.getElementById(canvasId);
         if (!this.canvas) return;
@@ -291,10 +291,10 @@ class FileMemoryManager {
 /* ══════════════════════════════════════════════════════════
    MAIN INTERFACE CLASS
 ══════════════════════════════════════════════════════════ */
-class HarryInterface {
+class BarryInterface {
     constructor() {
         this.apiUrl             = '';
-        this.token              = localStorage.getItem('harry_token');
+        this.token              = localStorage.getItem('barry_token');
         this.currentUser        = null;
         this.currentConversationId = null;
         this.conversations      = [];
@@ -337,13 +337,13 @@ class HarryInterface {
         document.getElementById('authPage').style.display  = 'flex';
         document.getElementById('chatPage').style.display  = 'none';
         this.token = null;
-        localStorage.removeItem('harry_token');
+        localStorage.removeItem('barry_token');
         this._startAuthHologram();
     }
 
     _startAuthHologram() {
         if (!this.authHologram) {
-            this.authHologram = new HarryHologram('hologramCanvas', 300);
+            this.authHologram = new BarryHologram('hologramCanvas', 300);
         }
         this.authHologram.start();
         
@@ -375,6 +375,12 @@ class HarryInterface {
         this.initSpeechRecognition();
         this.loadConversations();
         this.createNewChat();
+        
+        // Fix: Rendi le funzioni accessibili globalmente
+        window.barry = this;
+        window.toggleHologram = () => this.toggleHologram();
+        window.showProfile = () => this.showProfile();
+        window.logout = () => this.logout();
     }
 
     initCapabilitiesDropdown() {
@@ -405,6 +411,11 @@ class HarryInterface {
         this.sidebar        = document.getElementById('sidebar');
         this.hamburgerBtn   = document.getElementById('hamburgerBtn');
         this.sidebarOverlay = document.getElementById('sidebarOverlay');
+        
+        if (this.hamburgerBtn) {
+            this.hamburgerBtn.onclick = () => this.toggleSidebar();
+        }
+        
         if (window.innerWidth < 992) this.closeSidebar();
         window.addEventListener('resize', () => {
             if (window.innerWidth >= 992) this.openSidebar(); else this.closeSidebar();
@@ -415,12 +426,12 @@ class HarryInterface {
     openSidebar()   {
         this.sidebar?.classList.add('open');
         this.hamburgerBtn?.classList.add('active');
-        this.sidebarOverlay?.classList.add('active');
+        this.sidebarOverlay?.classList.add('show');
     }
     closeSidebar()  {
         this.sidebar?.classList.remove('open');
         this.hamburgerBtn?.classList.remove('active');
-        this.sidebarOverlay?.classList.remove('active');
+        this.sidebarOverlay?.classList.remove('show');
     }
 
     setMode(mode, label) {
@@ -436,7 +447,7 @@ class HarryInterface {
 
         const dropdownBtn = document.querySelector('.dropdown-btn');
         if (dropdownBtn) {
-            dropdownBtn.innerHTML = `<span class="dropdown-icon">⚡</span> ${modeLabel} <span class="dropdown-arrow">▼</span>`;
+            dropdownBtn.innerHTML = `<span>⚡</span> ${modeLabel} <span class="dropdown-arrow-icon">▼</span>`;
         }
 
         const placeholders = {
@@ -463,7 +474,7 @@ class HarryInterface {
             creative: `**Modalità Creativa** attivata, Signore...`,
         };
         const greeting = greetings[mode] || `Modalità **${modeLabel}** attivata, Signore. Come posso assisterla?`;
-        this.addMessage('HARRY', greeting, 'assistant', [], true);
+        this.addMessage('BARRY', greeting, 'assistant', [], true);
     }
 
     clearMode() {
@@ -473,16 +484,16 @@ class HarryInterface {
         
         const dropdownBtn = document.querySelector('.dropdown-btn');
         if (dropdownBtn) {
-            dropdownBtn.innerHTML = `<span class="dropdown-icon">⚡</span> Seleziona Modalità <span class="dropdown-arrow">▼</span>`;
+            dropdownBtn.innerHTML = `<span>⚡</span> Seleziona Modalità <span class="dropdown-arrow-icon">▼</span>`;
         }
         
         if (this.userInput) {
-            this.userInput.placeholder = 'Scrivi o parla con HARRY...';
+            this.userInput.placeholder = 'Scrivi o parla con BARRY...';
         }
     }
 
     toggleHologram() {
-        const el          = document.getElementById('holoHarry');
+        const el          = document.getElementById('holoBarry');
         const mainContent = document.querySelector('.main-content');
         const sidebar     = document.getElementById('sidebar');
         const hamburger   = document.getElementById('hamburgerBtn');
@@ -494,7 +505,7 @@ class HarryInterface {
             if (mainContent) mainContent.style.visibility = 'hidden';
             if (sidebar)     sidebar.style.visibility     = 'hidden';
             if (hamburger)   hamburger.style.visibility   = 'hidden';
-            if (!this.hologram) this.hologram = new HarryHologram('holoCanvas', 380);
+            if (!this.hologram) this.hologram = new BarryHologram('holoCanvas', 380);
             this.hologram.start();
             this.initHoloSpeechRecognition();
             
@@ -534,7 +545,7 @@ class HarryInterface {
                 this._holoVoiceBuffer = transcript;
                 const statusEl = document.getElementById('holoStatusText');
                 if (statusEl) statusEl.textContent = `"${transcript.substring(0, 40)}${transcript.length > 40 ? '...' : ''}"`;
-                setHoloWaveActive(true);
+                this.setHoloWaveActive(true);
                 if (e.results[0].isFinal) {
                     setTimeout(() => this.sendHologramVoiceMessage(transcript), 100);
                 }
@@ -543,21 +554,41 @@ class HarryInterface {
             this.holoRecognition.onstart = () => {
                 const statusEl = document.getElementById('holoStatusText');
                 if (statusEl) statusEl.textContent = 'IN ASCOLTO...';
-                setHoloWaveActive(true);
+                this.setHoloWaveActive(true);
             };
 
             this.holoRecognition.onend = () => {
                 const statusEl = document.getElementById('holoStatusText');
                 if (statusEl && !this._holoProcessing) statusEl.textContent = 'CLICCA SULL\'OLOGRAMMA PER PARLARE';
-                setHoloWaveActive(false);
+                this.setHoloWaveActive(false);
             };
             
-            this.holoRecognition.onerror = (ev) => {
-                setHoloWaveActive(false);
+            this.holoRecognition.onerror = () => {
+                this.setHoloWaveActive(false);
                 const statusEl = document.getElementById('holoStatusText');
                 if (statusEl) statusEl.textContent = 'ERRORE — RIPROVA';
             };
         }
+    }
+
+    setHoloWaveActive(active) {
+        const waveEl = document.getElementById('holoWaveform');
+        if (!waveEl) return;
+        const bars = waveEl.querySelectorAll('.hbar');
+        bars.forEach(b => {
+            if (active) b.classList.add('active');
+            else { b.classList.remove('active'); b.style.height = '4px'; }
+        });
+    }
+
+    setAuthWaveActive(active) {
+        const waveEl = document.getElementById('authHoloWave');
+        if (!waveEl) return;
+        const bars = waveEl.querySelectorAll('.wave-bar');
+        bars.forEach(b => {
+            if (active) b.classList.add('active');
+            else { b.classList.remove('active'); b.style.height = '4px'; }
+        });
     }
 
     startHoloListening() {
@@ -593,8 +624,8 @@ class HarryInterface {
         loadDiv.innerHTML = '<span class="holo-typing">● ● ●</span>';
         msgs.appendChild(loadDiv);
         msgs.scrollTop = msgs.scrollHeight;
-        if (statusEl) statusEl.textContent = 'HARRY STA ELABORANDO...';
-        setHoloWaveActive(true);
+        if (statusEl) statusEl.textContent = 'BARRY STA ELABORANDO...';
+        this.setHoloWaveActive(true);
 
         try {
             if (!this.holoHistory) this.holoHistory = [];
@@ -618,26 +649,26 @@ class HarryInterface {
 
             if (this.synthesis && this.hologram) {
                 this.hologram.setSpeaking(true);
-                if (statusEl) statusEl.textContent = 'HARRY STA PARLANDO...';
-                setHoloWaveActive(true);
+                if (statusEl) statusEl.textContent = 'BARRY STA PARLANDO...';
+                this.setHoloWaveActive(true);
                 const utt = new SpeechSynthesisUtterance(reply.replace(/[*_`#]/g, '').substring(0, 500));
                 utt.lang  = 'it-IT';
                 utt.rate  = 0.95;
                 utt.onend = () => {
                     this.hologram?.setSpeaking(false);
-                    setHoloWaveActive(false);
+                    this.setHoloWaveActive(false);
                     if (statusEl) statusEl.textContent = 'CLICCA SULL\'OLOGRAMMA PER PARLARE';
                     this._holoProcessing = false;
                 };
                 this.synthesis.speak(utt);
             } else {
-                setHoloWaveActive(false);
+                this.setHoloWaveActive(false);
                 if (statusEl) statusEl.textContent = 'CLICCA SULL\'OLOGRAMMA PER PARLARE';
                 this._holoProcessing = false;
             }
         } catch {
             loadDiv.innerHTML = 'Errore di connessione, Signore.';
-            setHoloWaveActive(false);
+            this.setHoloWaveActive(false);
             if (statusEl) statusEl.textContent = 'ERRORE — RIPROVA';
             this._holoProcessing = false;
         }
@@ -693,12 +724,12 @@ class HarryInterface {
                 const title    = this.escapeHtml((conv.title || 'Nuova Chat').substring(0, 45));
                 const isActive = this.currentConversationId === conv.id ? 'active' : '';
                 html += `
-                    <div class="conv-item ${isActive}" onclick="window.harry.loadConversation(${conv.id})">
+                    <div class="conv-item ${isActive}" onclick="window.barry.loadConversation(${conv.id})">
                         <div class="conv-item-icon">💬</div>
                         <div class="conv-item-text">
                             <div class="conv-item-title">${title}</div>
                         </div>
-                        <button class="conv-item-delete" onclick="event.stopPropagation();window.harry.deleteConversation(${conv.id})" title="Elimina">🗑</button>
+                        <button class="conv-item-delete" onclick="event.stopPropagation();window.barry.deleteConversation(${conv.id})" title="Elimina">🗑</button>
                     </div>`;
             });
         });
@@ -714,7 +745,7 @@ class HarryInterface {
                 this.clearMessages();
                 if (data.messages?.length) {
                     data.messages.forEach(msg => {
-                        this.addMessage(msg.role === 'user' ? 'Tu' : 'HARRY', msg.content, msg.role, [], false);
+                        this.addMessage(msg.role === 'user' ? 'Tu' : 'BARRY', msg.content, msg.role, [], false);
                     });
                 }
                 this.renderConversationsList();
@@ -750,9 +781,8 @@ class HarryInterface {
                 this.fileMemory.clear();
                 
                 const name = this.currentUser?.name || 'Signore';
-                const creatorMessage = this.currentUser?.email === 'antonio.pepice08@gmail.com' 
-                    ? `Buongiorno, ${name}! Sono B.A.R.R.Y., il suo assistente personale creato da **Antonio Pepice**. Posso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`
-                    : `Buongiorno, ${name}! Sono B.A.R.R.Y. Posso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`;
+                // RIMOSSO [CRITTOGRAFATO]
+                const creatorMessage = `Buongiorno, ${name}! Sono B.A.R.R.Y., il suo assistente personale creato da **Antonio Pepice**. Posso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`;
                 
                 this.addMessage('BARRY', creatorMessage, 'assistant', [], true);
                 await this.loadConversations();
@@ -844,14 +874,8 @@ class HarryInterface {
         
         if (file.type === 'text/plain' || file.name.endsWith('.txt') || file.name.endsWith('.js') || 
             file.name.endsWith('.py') || file.name.endsWith('.html') || file.name.endsWith('.css') ||
-            file.name.endsWith('.json') || file.name.endsWith('.md') || file.name.endsWith('.csv') ||
-            file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/jpg') {
-            if (file.type.startsWith('image/')) {
-                this.addMessage('BARRY', `📸 Ho ricevuto l'immagine **${file.name}**. Posso aiutarti a descriverla o analizzarla?`, 'assistant', [], true);
-                this.hideTypingIndicator();
-            } else {
-                reader.readAsText(file, 'UTF-8');
-            }
+            file.name.endsWith('.json') || file.name.endsWith('.md') || file.name.endsWith('.csv')) {
+            reader.readAsText(file, 'UTF-8');
         } else {
             this.fileMemory.addFile(file.name, `[File: ${file.name} - Tipo: ${file.type || 'sconosciuto'} - Dimensione: ${(file.size / 1024).toFixed(1)} KB]`, file.type);
             this.addMessage('BARRY', `📁 Ho memorizzato il file **${file.name}**. Puoi farmi domande su di esso.`, 'assistant', [], true);
@@ -995,10 +1019,7 @@ class HarryInterface {
         const extMap = {
             javascript:'js', typescript:'ts', python:'py', html:'html', css:'css', java:'java',
             cpp:'cpp', c:'c', csharp:'cs', go:'go', rust:'rs', php:'php', ruby:'rb', swift:'swift',
-            kotlin:'kt', dart:'dart', scala:'scala', haskell:'hs', r:'r', sql:'sql', bash:'sh',
-            julia:'jl', lua:'lua', elixir:'ex', erlang:'erl', clojure:'clj', fsharp:'fs',
-            ocaml:'ml', asm:'asm', zig:'zig', nim:'nim', powershell:'ps1', cobol:'cbl',
-            glsl:'glsl', matlab:'m', wat:'wat',
+            kotlin:'kt', dart:'dart', scala:'scala', haskell:'hs', r:'r', sql:'sql', bash:'sh'
         };
         const ext = extMap[lang] || 'txt';
         const a   = Object.assign(document.createElement('a'), {
@@ -1037,8 +1058,8 @@ class HarryInterface {
                 </div>
               </div>
               <div class="profile-actions">
-                <button class="btn-success" onclick="window.harry.saveProfile()">💾 Salva</button>
-                <button class="btn-danger"  onclick="logout()">🚪 Logout</button>
+                <button class="btn-success" onclick="window.barry.saveProfile()">💾 Salva</button>
+                <button class="btn-danger"  onclick="window.barry.logout()">🚪 Logout</button>
               </div>
               <div id="profileMsg" style="font-size:0.8rem;text-align:center;min-height:20px;margin-top:8px;"></div>
             </div>
@@ -1070,6 +1091,11 @@ class HarryInterface {
         }
     }
 
+    logout() {
+        localStorage.removeItem('barry_token');
+        window.location.reload();
+    }
+
     // Auth Hologram Voice
     openAuthHologramVoice() {
         const overlay = document.getElementById('authHoloOverlay');
@@ -1077,7 +1103,7 @@ class HarryInterface {
         overlay.style.display = 'flex';
 
         if (!this._authHoloCanvas) {
-            this._authHoloCanvas = new HarryHologram('authHoloCanvas', 340);
+            this._authHoloCanvas = new BarryHologram('authHoloCanvas', 340);
         }
         this._authHoloCanvas.start();
 
@@ -1103,7 +1129,7 @@ class HarryInterface {
         this._authHoloRecognition.onstart = () => {
             const statusEl = document.getElementById('authHoloStatusText');
             if (statusEl) statusEl.textContent = 'IN ASCOLTO...';
-            setAuthWaveActive(true);
+            this.setAuthWaveActive(true);
         };
 
         this._authHoloRecognition.onresult = (e) => {
@@ -1123,11 +1149,11 @@ class HarryInterface {
                 const statusEl = document.getElementById('authHoloStatusText');
                 if (statusEl) statusEl.textContent = 'CLICCA SULL\'OLOGRAMMA PER PARLARE';
             }
-            setAuthWaveActive(false);
+            this.setAuthWaveActive(false);
         };
 
         this._authHoloRecognition.onerror = () => {
-            setAuthWaveActive(false);
+            this.setAuthWaveActive(false);
             const statusEl = document.getElementById('authHoloStatusText');
             if (statusEl) statusEl.textContent = 'ERRORE — RIPROVA';
         };
@@ -1167,7 +1193,7 @@ class HarryInterface {
             msgs.scrollTop = msgs.scrollHeight;
 
             if (statusEl) statusEl.textContent = 'BARRY STA ELABORANDO...';
-            setAuthWaveActive(true);
+            this.setAuthWaveActive(true);
 
             try {
                 if (!this._authHoloHistory) this._authHoloHistory = [];
@@ -1175,7 +1201,7 @@ class HarryInterface {
 
                 const res = await fetch('/api/chat', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('harry_token') || ''}` },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('barry_token') || ''}` },
                     body: JSON.stringify({ messages: this._authHoloHistory })
                 });
                 const data = await res.json();
@@ -1186,25 +1212,25 @@ class HarryInterface {
                 if (window.speechSynthesis) {
                     if (this._authHoloCanvas) this._authHoloCanvas.setSpeaking(true);
                     if (statusEl) statusEl.textContent = 'BARRY STA PARLANDO...';
-                    setAuthWaveActive(true);
+                    this.setAuthWaveActive(true);
                     const utt = new SpeechSynthesisUtterance(reply.replace(/[*_`#]/g, '').substring(0, 500));
                     utt.lang = 'it-IT';
                     utt.rate = 0.95;
                     utt.onend = () => {
                         if (this._authHoloCanvas) this._authHoloCanvas.setSpeaking(false);
-                        setAuthWaveActive(false);
+                        this.setAuthWaveActive(false);
                         if (statusEl) statusEl.textContent = 'CLICCA SULL\'OLOGRAMMA PER PARLARE';
                         this._authHoloProcessing = false;
                     };
                     window.speechSynthesis.speak(utt);
                 } else {
-                    setAuthWaveActive(false);
+                    this.setAuthWaveActive(false);
                     if (statusEl) statusEl.textContent = 'CLICCA SULL\'OLOGRAMMA PER PARLARE';
                     this._authHoloProcessing = false;
                 }
             } catch(err) {
                 loadDiv.textContent = 'Errore di connessione.';
-                setAuthWaveActive(false);
+                this.setAuthWaveActive(false);
                 if (statusEl) statusEl.textContent = 'ERRORE — RIPROVA';
                 this._authHoloProcessing = false;
             }
@@ -1219,7 +1245,7 @@ class HarryInterface {
         if (this._authHoloRecognition) {
             try { this._authHoloRecognition.stop(); } catch(e) {}
         }
-        setAuthWaveActive(false);
+        this.setAuthWaveActive(false);
     }
 }
 
@@ -1227,7 +1253,6 @@ class HarryInterface {
    GLOBAL AUTH FUNCTIONS CON VERIFICA EMAIL
 ══════════════════════════════════════════════════════════ */
 
-// Variabili per il flusso di registrazione
 let pendingRegistrationEmail = null;
 let emailVerified = false;
 
@@ -1239,7 +1264,6 @@ function switchAuthTab(tab) {
     tabs.forEach((t, i) => t.classList.toggle('active', i === map[tab]));
     document.getElementById('authMessage').innerHTML = '';
     
-    // Reset UI per la registrazione
     if (tab === 'register') {
         const emailSection = document.getElementById('registerEmailSection');
         const verifySection = document.getElementById('registerVerifySection');
@@ -1305,7 +1329,6 @@ function getTfaCode(containerId) {
     return Array.from(container.querySelectorAll('.tfa-digit')).map(d => d.value).join('');
 }
 
-// INVIARE CODICE DI VERIFICA EMAIL
 async function sendVerificationCode() {
     const email = document.getElementById('regEmail').value.trim().toLowerCase();
     
@@ -1334,7 +1357,6 @@ async function sendVerificationCode() {
             pendingRegistrationEmail = email;
             showAuthMessage('✅ Codice di verifica inviato! Controlla la tua email.', true);
             
-            // Mostra la sezione di verifica
             document.getElementById('registerEmailSection').style.display = 'none';
             document.getElementById('registerVerifySection').style.display = 'block';
             initTfaInputs('verifyCodeInputs');
@@ -1346,7 +1368,6 @@ async function sendVerificationCode() {
     }
 }
 
-// VERIFICA CODICE EMAIL
 async function verifyEmailCode() {
     const code = getTfaCode('verifyCodeInputs');
     const email = pendingRegistrationEmail;
@@ -1376,7 +1397,6 @@ async function verifyEmailCode() {
             emailVerified = true;
             showAuthMessage('✅ Email verificata! Ora completa la registrazione.', true);
             
-            // Mostra il modulo completo di registrazione
             document.getElementById('registerVerifySection').style.display = 'none';
             document.getElementById('registerFullSection').style.display = 'block';
         } else {
@@ -1387,7 +1407,6 @@ async function verifyEmailCode() {
     }
 }
 
-// RINVIO CODICE
 async function resendVerificationCode() {
     const email = pendingRegistrationEmail;
     
@@ -1417,7 +1436,6 @@ async function resendVerificationCode() {
     }
 }
 
-// REGISTRAZIONE COMPLETA
 document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -1473,8 +1491,8 @@ document.getElementById('registerForm')?.addEventListener('submit', async (e) =>
             
             showAuthMessage('📱 Scansiona il QR con Google Authenticator, poi inserisci il codice a 6 cifre.', true);
         } else if (data.success) {
-            localStorage.setItem('harry_token', data.token);
-            window.harry = new HarryInterface();
+            localStorage.setItem('barry_token', data.token);
+            window.barry = new BarryInterface();
             showAuthMessage('✅ Registrazione completata!', true);
         } else {
             showAuthMessage(`❌ ${data.error}`);
@@ -1502,8 +1520,8 @@ async function confirmGoogleAuth() {
         const data = await res.json();
         
         if (data.success) {
-            localStorage.setItem('harry_token', data.token);
-            window.harry = new HarryInterface();
+            localStorage.setItem('barry_token', data.token);
+            window.barry = new BarryInterface();
             showAuthMessage('✅ Registrazione completata! Google Auth attivo.', true);
         } else {
             showAuthMessage(`❌ ${data.error}`);
@@ -1513,7 +1531,6 @@ async function confirmGoogleAuth() {
     }
 }
 
-// LOGIN
 document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email    = document.getElementById('loginEmail').value.trim().toLowerCase();
@@ -1549,8 +1566,8 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
         }
 
         if (data.success) {
-            localStorage.setItem('harry_token', data.token);
-            window.harry = new HarryInterface();
+            localStorage.setItem('barry_token', data.token);
+            window.barry = new BarryInterface();
             showAuthMessage('✅ Accesso effettuato!', true);
         } else {
             showAuthMessage(`❌ ${data.error}`);
@@ -1560,7 +1577,6 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     }
 });
 
-// RECUPERO
 async function sendRecoverCode() {
     const email = document.getElementById('recoverEmail')?.value;
     if (!email) { showAuthMessage('❌ Inserisci la tua email'); return; }
@@ -1616,7 +1632,6 @@ document.getElementById('recoverForm')?.addEventListener('submit', async (e) => 
     }
 });
 
-// CAMBIO PASSWORD
 document.getElementById('changePasswordForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email           = document.getElementById('changeEmail').value;
@@ -1645,42 +1660,14 @@ document.getElementById('changePasswordForm')?.addEventListener('submit', async 
     }
 });
 
-function logout() {
-    localStorage.removeItem('harry_token');
-    window.location.reload();
-}
-
-/* ══════════════════════════════════════════════════════════
-   GLOBAL HELPERS — WAVE ANIMATION
-══════════════════════════════════════════════════════════ */
-function setHoloWaveActive(active) {
-    const waveEl = document.getElementById('holoWaveform');
-    if (!waveEl) return;
-    const bars = waveEl.querySelectorAll('.hbar');
-    bars.forEach(b => {
-        if (active) b.classList.add('active');
-        else { b.classList.remove('active'); b.style.height = '4px'; }
-    });
-}
-
-function setAuthWaveActive(active) {
-    const waveEl = document.getElementById('authHoloWave');
-    if (!waveEl) return;
-    const bars = waveEl.querySelectorAll('.wave-bar');
-    bars.forEach(b => {
-        if (active) b.classList.add('active');
-        else { b.classList.remove('active'); b.style.height = '4px'; }
-    });
-}
-
 function closeAuthHologramVoice() {
-    if (window.harry && window.harry.closeAuthHologramVoice) {
-        window.harry.closeAuthHologramVoice();
+    if (window.barry && window.barry.closeAuthHologramVoice) {
+        window.barry.closeAuthHologramVoice();
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    window.harry = new HarryInterface();
+    window.barry = new BarryInterface();
     initTfaInputs('tfaInputs');
     initTfaInputs('recoverTfaInputs');
     initTfaInputs('regGaInputs');
