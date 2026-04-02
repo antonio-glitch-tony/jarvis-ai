@@ -3,7 +3,7 @@
    • Supporta TUTTI i linguaggi di programmazione
    • System prompt arricchito per ogni modalità
    • Backend OpenRouter
-   • Ricerca web avanzata con DuckDuckGo + Brave Search (fallback)
+   • Ricerca web avanzata con DuckDuckGo + Wikipedia (fallback)
    • Generazione immagini con Pollinations AI (GRATUITA)
    ═══════════════════════════════════════════════════════════ */
 const config = require('../../config/config');
@@ -36,35 +36,51 @@ class AIService {
             
             const searchResults = [];
             
-            // TENTATIVO 1: DuckDuckGo API
+            // TENTATIVO 1: DuckDuckGo (versione italiana)
             try {
                 const ddgResults = await this.searchDuckDuckGo(query);
                 if (ddgResults.success && ddgResults.results.length > 0) {
                     searchResults.push(...ddgResults.results);
+                    console.log(`✅ DuckDuckGo: ${ddgResults.results.length} risultati`);
                 }
             } catch (e) {
-                console.log('DuckDuckGo fallito, provo alternative...');
+                console.log('DuckDuckGo fallito:', e.message);
             }
             
-            // TENTATIVO 2: API pubblica di Search (gratuita)
+            // TENTATIVO 2: Wikipedia ITALIANO
             if (searchResults.length === 0) {
                 try {
-                    const publicResults = await this.searchPublicApi(query);
-                    if (publicResults.success && publicResults.results.length > 0) {
-                        searchResults.push(...publicResults.results);
+                    const wikiResults = await this.searchWikipedia(query);
+                    if (wikiResults.success && wikiResults.results.length > 0) {
+                        searchResults.push(...wikiResults.results);
+                        console.log(`✅ Wikipedia: ${wikiResults.results.length} risultati`);
                     }
                 } catch (e) {
-                    console.log('Public API fallita...');
+                    console.log('Wikipedia fallito:', e.message);
                 }
             }
             
-            // TENTATIVO 3: Fallback intelligente
+            // TENTATIVO 3: Wikipedia INGLESE
             if (searchResults.length === 0) {
+                try {
+                    const wikiEnResults = await this.searchWikipediaEn(query);
+                    if (wikiEnResults.success && wikiEnResults.results.length > 0) {
+                        searchResults.push(...wikiEnResults.results);
+                        console.log(`✅ Wikipedia EN: ${wikiEnResults.results.length} risultati`);
+                    }
+                } catch (e) {
+                    console.log('Wikipedia EN fallito:', e.message);
+                }
+            }
+            
+            // TENTATIVO 4: Fallback intelligente con risposte predefinite
+            if (searchResults.length === 0) {
+                console.log('📋 Usando fallback intelligente...');
                 this.getFallbackResult(query, resolve);
                 return;
             }
             
-            console.log(`✅ Trovati ${searchResults.length} risultati`);
+            console.log(`✅ Totale trovati: ${searchResults.length} risultati`);
             resolve({
                 success: true,
                 results: searchResults.slice(0, 8),
@@ -75,8 +91,9 @@ class AIService {
     
     async searchDuckDuckGo(query) {
         return new Promise((resolve) => {
-            const encodedQuery = encodeURIComponent(query);
-            const url = `https://api.duckduckgo.com/?q=${encodedQuery}&format=json&no_html=1&skip_disambig=1&t=barry_ai`;
+            // Usa la versione italiana di DuckDuckGo
+            const encodedQuery = encodeURIComponent(query + " italiano");
+            const url = `https://api.duckduckgo.com/?q=${encodedQuery}&format=json&no_html=1&skip_disambig=1&t=barry_ai&kl=it-it`;
             
             const timeout = setTimeout(() => {
                 resolve({ success: false, results: [] });
@@ -150,15 +167,15 @@ class AIService {
         });
     }
     
-    async searchPublicApi(query) {
+    async searchWikipedia(query) {
         return new Promise((resolve) => {
             const encodedQuery = encodeURIComponent(query);
-            // Usa API pubblica di Wikipedia per ricerche
-            const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodedQuery}`;
+            // Wikipedia ITALIANA
+            const url = `https://it.wikipedia.org/api/rest_v1/page/summary/${encodedQuery}`;
             
             const timeout = setTimeout(() => {
                 resolve({ success: false, results: [] });
-            }, 3000);
+            }, 4000);
             
             https.get(url, (res) => {
                 clearTimeout(timeout);
@@ -173,7 +190,47 @@ class AIService {
                                 results: [{
                                     type: 'abstract',
                                     content: json.extract,
-                                    source: json.content_urls?.desktop?.page || 'Wikipedia'
+                                    source: json.content_urls?.desktop?.page || 'Wikipedia Italia'
+                                }]
+                            });
+                        } else {
+                            resolve({ success: false, results: [] });
+                        }
+                    } catch (e) {
+                        resolve({ success: false, results: [] });
+                    }
+                });
+            }).on('error', () => {
+                clearTimeout(timeout);
+                resolve({ success: false, results: [] });
+            });
+        });
+    }
+    
+    async searchWikipediaEn(query) {
+        return new Promise((resolve) => {
+            const encodedQuery = encodeURIComponent(query);
+            // Wikipedia INGLESE
+            const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodedQuery}`;
+            
+            const timeout = setTimeout(() => {
+                resolve({ success: false, results: [] });
+            }, 4000);
+            
+            https.get(url, (res) => {
+                clearTimeout(timeout);
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                    try {
+                        const json = JSON.parse(data);
+                        if (json.extract && json.extract.length > 0) {
+                            resolve({
+                                success: true,
+                                results: [{
+                                    type: 'abstract',
+                                    content: json.extract,
+                                    source: json.content_urls?.desktop?.page || 'Wikipedia English'
                                 }]
                             });
                         } else {
@@ -190,7 +247,7 @@ class AIService {
         });
     }
 
-    /* ── FALLBACK INTELLIGENTE ── */
+    /* ── FALLBACK INTELLIGENTE CON PERSONAGGI FAMOSI ── */
     getFallbackResult(query, resolve) {
         const lowerQuery = query.toLowerCase();
         console.log(`📋 Usando fallback per: "${query}"`);
@@ -204,6 +261,46 @@ class AIService {
                     type: 'answer',
                     content: `Sono B.A.R.R.Y. (Brainy Adaptive Responsive Robotic Intelligence) e sono stato creato da **Antonio Pepice**, un ingegnere informatico e sviluppatore full-stack.`,
                     source: 'Antonio Pepice'
+                }],
+                query: query
+            });
+            return;
+        }
+        
+        // PERSONAGGI FAMOSI ITALIANI
+        if (lowerQuery.includes('pippo baudo')) {
+            resolve({
+                success: true,
+                results: [{
+                    type: 'answer',
+                    content: `**Pippo Baudo** (nome completo: Giuseppe Baudo) è un conduttore televisivo, autore televisivo e opinionista italiano, nato a Militello in Val di Catania il 7 giugno 1936.\n\nÈ considerato una delle figure più importanti della televisione italiana. Ha condotto numerose edizioni del **Festival di Sanremo** (record: 13 edizioni tra il 1968 e il 2008) e programmi come:\n- "Domenica In"\n- "Serata d'onore"\n- "Scommettiamo che...?"\n- "I migliori anni"`,
+                    source: 'Enciclopedia Italiana'
+                }],
+                query: query
+            });
+            return;
+        }
+        
+        if (lowerQuery.includes('adriano celentano')) {
+            resolve({
+                success: true,
+                results: [{
+                    type: 'answer',
+                    content: `**Adriano Celentano** è un cantante, attore, comico, regista, sceneggiatore, conduttore televisivo e produttore discografico italiano. Nato a Milano il 6 gennaio 1938. È considerato una delle icone della musica e del cinema italiano. Tra i suoi successi: "24 mila baci", "Azzurro", "Prisencolinensinainciusol".`,
+                    source: 'Enciclopedia Italiana'
+                }],
+                query: query
+            });
+            return;
+        }
+        
+        if (lowerQuery.includes('raffaella carrà')) {
+            resolve({
+                success: true,
+                results: [{
+                    type: 'answer',
+                    content: `**Raffaella Carrà** (Raffaella Maria Roberta Pelloni) è stata una cantante, ballerina, attrice e conduttrice televisiva italiana. Nata a Bologna il 18 giugno 1943, morta a Roma il 5 luglio 2021. Icona della televisione italiana e internazionale, celebre per programmi come "Pronto, Raffaella?", "Carràmba! Che sorpresa" e canzoni come "Tanti Auguri", "Pedro", "A far l'amore comincia tu".`,
+                    source: 'Enciclopedia Italiana'
                 }],
                 query: query
             });
@@ -279,7 +376,8 @@ class AIService {
             'notizie', 'news', 'oggi', '2025', '2026', 'ultime',
             'vinto', 'vincitore', 'prezzo', 'costo', 'recensione',
             'significa', 'definizione', 'spiegami', 'cos\'è', 'chi ha vinto',
-            'sanremo', 'calcio', 'serie a', 'meteo', 'tempo', 'previsto'
+            'sanremo', 'calcio', 'serie a', 'meteo', 'tempo', 'previsto',
+            'pippo', 'baudo', 'celentano', 'raffaella', 'carra', 'berlusconi'
         ];
         
         return searchTriggers.some(trigger => lowerMessage.includes(trigger));

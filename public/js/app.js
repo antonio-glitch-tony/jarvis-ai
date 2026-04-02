@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   H.A.R.R.Y. — Frontend App v4.0
+   B.A.R.R.Y. — Frontend App v4.0 CON VERIFICA EMAIL
    Autore: Antonio Pepice
    ═══════════════════════════════════════════════════════════ */
 
@@ -23,7 +23,7 @@ const MODE_PROMPTS = {
     html: 'MODALITÀ HTML/CSS ATTIVA...',
     sql: 'MODALITÀ SQL ATTIVA...',
     bash: 'MODALITÀ BASH/SHELL ATTIVA...',
-    study: 'MODALITÀ STUDIO ATTIVA. Sei un tutor accademico. Analizzerai i file allegati e risponderai alle domande in modo didattico e approfondito...',
+    study: 'MODALITÀ STUDIO ATTIVA. Sei un tutor accademico...',
     translate: 'MODALITÀ TRADUZIONE ATTIVA...',
     summarize: 'MODALITÀ RIASSUNTO ATTIVA...',
     debug: 'MODALITÀ DEBUG ATTIVA...',
@@ -36,7 +36,7 @@ const MODE_PROMPTS = {
 };
 
 /* ══════════════════════════════════════════════════════════
-   GENERA IMPRONTA DIGITALE (FINGERPRINT) - FIXATA
+   GENERA IMPRONTA DIGITALE (FINGERPRINT)
 ══════════════════════════════════════════════════════════ */
 async function generateFingerprint() {
     try {
@@ -60,7 +60,6 @@ async function generateFingerprint() {
         return await sha256(fingerprint);
     } catch (e) {
         console.error('Fingerprint error:', e);
-        // Fallback fingerprint
         return await sha256(Date.now() + navigator.userAgent + Math.random());
     }
 }
@@ -102,7 +101,7 @@ async function sha256(message) {
 }
 
 /* ══════════════════════════════════════════════════════════
-   HOLOGRAM — Avengers: Age of Ultron style (CON VOICE)
+   HOLOGRAM STYLE
 ══════════════════════════════════════════════════════════ */
 class HarryHologram {
     constructor(canvasId, size = 380) {
@@ -348,7 +347,6 @@ class HarryInterface {
         }
         this.authHologram.start();
         
-        // Attach click listener to auth hologram
         const authHoloTrigger = document.getElementById('authHologramTrigger');
         if (authHoloTrigger) {
             authHoloTrigger.onclick = () => this.openAuthHologramVoice();
@@ -500,7 +498,6 @@ class HarryInterface {
             this.hologram.start();
             this.initHoloSpeechRecognition();
             
-            // Attach click listener to hologram canvas for voice
             const holoCanvasTrigger = document.getElementById('holoCanvasTrigger');
             if (holoCanvasTrigger) {
                 holoCanvasTrigger.onclick = () => this.startHoloListening();
@@ -700,7 +697,6 @@ class HarryInterface {
                         <div class="conv-item-icon">💬</div>
                         <div class="conv-item-text">
                             <div class="conv-item-title">${title}</div>
-                            <div class="conv-item-date">${new Date(conv.updated_at).toLocaleDateString('it-IT')}</div>
                         </div>
                         <button class="conv-item-delete" onclick="event.stopPropagation();window.harry.deleteConversation(${conv.id})" title="Elimina">🗑</button>
                     </div>`;
@@ -755,10 +751,10 @@ class HarryInterface {
                 
                 const name = this.currentUser?.name || 'Signore';
                 const creatorMessage = this.currentUser?.email === 'antonio.pepice08@gmail.com' 
-                    ? `Buongiorno, ${name}! Sono H.A.R.R.Y., il suo assistente personale creato da **Antonio Pepice**. Posso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`
-                    : `Buongiorno, ${name}! Sono H.A.R.R.Y. Posso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`;
+                    ? `Buongiorno, ${name}! Sono B.A.R.R.Y., il suo assistente personale creato da **Antonio Pepice**. Posso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`
+                    : `Buongiorno, ${name}! Sono B.A.R.R.Y. Posso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`;
                 
-                this.addMessage('HARRY', creatorMessage, 'assistant', [], true);
+                this.addMessage('BARRY', creatorMessage, 'assistant', [], true);
                 await this.loadConversations();
                 this.userInput?.focus();
                 if (window.innerWidth < 992) this.closeSidebar();
@@ -801,11 +797,11 @@ class HarryInterface {
                 this.speak(data.response);
                 await this.loadConversations();
             } else {
-                this.addMessage('HARRY', `Errore, Signore: ${data.error}`, 'system', [], true);
+                this.addMessage('BARRY', `Errore, Signore: ${data.error}`, 'system', [], true);
             }
         } catch (e) {
             this.hideTypingIndicator();
-            this.addMessage('HARRY', `Errore di connessione, Sir: ${e.message}`, 'system', [], true);
+            this.addMessage('BARRY', `Errore di connessione, Sir: ${e.message}`, 'system', [], true);
         }
     }
 
@@ -838,11 +834,11 @@ class HarryInterface {
                     await this.typeMessage(`📄 **Analisi: ${file.name}**\n\n${data.response}\n\n💡 *Ora puoi farmi domande specifiche su questo file!*`, []);
                     await this.loadConversations();
                 } else {
-                    this.addMessage('HARRY', `Errore: ${data.error}`, 'system', []);
+                    this.addMessage('BARRY', `Errore: ${data.error}`, 'system', []);
                 }
             } catch (err) {
                 this.hideTypingIndicator();
-                this.addMessage('HARRY', `Errore: ${err.message}`, 'system', []);
+                this.addMessage('BARRY', `Errore: ${err.message}`, 'system', []);
             }
         };
         
@@ -851,15 +847,14 @@ class HarryInterface {
             file.name.endsWith('.json') || file.name.endsWith('.md') || file.name.endsWith('.csv') ||
             file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/jpg') {
             if (file.type.startsWith('image/')) {
-                // Per immagini, possiamo solo dire che è stata caricata
-                this.addMessage('HARRY', `📸 Ho ricevuto l'immagine **${file.name}**. Posso aiutarti a descriverla o analizzarla?`, 'assistant', [], true);
+                this.addMessage('BARRY', `📸 Ho ricevuto l'immagine **${file.name}**. Posso aiutarti a descriverla o analizzarla?`, 'assistant', [], true);
                 this.hideTypingIndicator();
             } else {
                 reader.readAsText(file, 'UTF-8');
             }
         } else {
             this.fileMemory.addFile(file.name, `[File: ${file.name} - Tipo: ${file.type || 'sconosciuto'} - Dimensione: ${(file.size / 1024).toFixed(1)} KB]`, file.type);
-            this.addMessage('HARRY', `📁 Ho memorizzato il file **${file.name}**. Puoi farmi domande su di esso.`, 'assistant', [], true);
+            this.addMessage('BARRY', `📁 Ho memorizzato il file **${file.name}**. Puoi farmi domande su di esso.`, 'assistant', [], true);
             this.hideTypingIndicator();
         }
     }
@@ -934,10 +929,9 @@ class HarryInterface {
     addMessage(sender, content, role, sources = [], scroll = true) {
         const d     = document.createElement('div');
         d.className = `message ${role === 'user' ? 'user-message' : 'system-message'}`;
-        const time  = new Date().toLocaleTimeString('it-IT');
         const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2);
         d.innerHTML = `
-            <div class="message-header">${sender} • ${time}</div>
+            <div class="message-header">${sender}</div>
             <div class="message-content" id="${msgId}">${this.formatMessage(content)}</div>`;
         this.chatMessages.appendChild(d);
         if (scroll) this.scrollToBottom();
@@ -948,9 +942,8 @@ class HarryInterface {
         return new Promise(resolve => {
             const d     = document.createElement('div');
             d.className = 'message system-message';
-            const time  = new Date().toLocaleTimeString('it-IT');
             const msgId = 'msg_' + Date.now();
-            d.innerHTML = `<div class="message-header">HARRY • ${time}</div><div class="message-content" id="${msgId}"></div>`;
+            d.innerHTML = `<div class="message-header">BARRY</div><div class="message-content" id="${msgId}"></div>`;
             this.chatMessages.appendChild(d);
             this.scrollToBottom();
 
@@ -1010,7 +1003,7 @@ class HarryInterface {
         const ext = extMap[lang] || 'txt';
         const a   = Object.assign(document.createElement('a'), {
             href:     URL.createObjectURL(new Blob([code], { type: 'text/plain' })),
-            download: `harry_code.${ext}`
+            download: `barry_code.${ext}`
         });
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
@@ -1021,7 +1014,7 @@ class HarryInterface {
         <div id="profileModal" class="modal">
           <div class="modal-content">
             <div class="modal-header">
-              <h2>👤 Profilo HARRY</h2>
+              <h2>👤 Profilo BARRY</h2>
               <button onclick="document.getElementById('profileModal').remove()">✕</button>
             </div>
             <div class="modal-body">
@@ -1093,7 +1086,6 @@ class HarryInterface {
         const statusEl = document.getElementById('authHoloStatusText');
         if (statusEl) statusEl.textContent = 'CLICCA SULL\'OLOGRAMMA PER PARLARE';
         
-        // Attach click to auth holo canvas
         const authCanvasTrigger = document.getElementById('authHoloCanvasTrigger');
         if (authCanvasTrigger) {
             authCanvasTrigger.onclick = () => this.toggleAuthHoloListening();
@@ -1174,7 +1166,7 @@ class HarryInterface {
             msgs.appendChild(loadDiv);
             msgs.scrollTop = msgs.scrollHeight;
 
-            if (statusEl) statusEl.textContent = 'HARRY STA ELABORANDO...';
+            if (statusEl) statusEl.textContent = 'BARRY STA ELABORANDO...';
             setAuthWaveActive(true);
 
             try {
@@ -1187,13 +1179,13 @@ class HarryInterface {
                     body: JSON.stringify({ messages: this._authHoloHistory })
                 });
                 const data = await res.json();
-                const reply = data.success ? data.response : 'Sono H.A.R.R.Y. Accedi per usarmi al massimo, Signore.';
+                const reply = data.success ? data.response : 'Sono B.A.R.R.Y. Accedi per usarmi al massimo, Signore.';
                 this._authHoloHistory.push({ role: 'assistant', content: reply });
                 loadDiv.innerHTML = reply;
 
                 if (window.speechSynthesis) {
                     if (this._authHoloCanvas) this._authHoloCanvas.setSpeaking(true);
-                    if (statusEl) statusEl.textContent = 'HARRY STA PARLANDO...';
+                    if (statusEl) statusEl.textContent = 'BARRY STA PARLANDO...';
                     setAuthWaveActive(true);
                     const utt = new SpeechSynthesisUtterance(reply.replace(/[*_`#]/g, '').substring(0, 500));
                     utt.lang = 'it-IT';
@@ -1232,8 +1224,12 @@ class HarryInterface {
 }
 
 /* ══════════════════════════════════════════════════════════
-   GLOBAL AUTH FUNCTIONS
+   GLOBAL AUTH FUNCTIONS CON VERIFICA EMAIL
 ══════════════════════════════════════════════════════════ */
+
+// Variabili per il flusso di registrazione
+let pendingRegistrationEmail = null;
+let emailVerified = false;
 
 function switchAuthTab(tab) {
     const forms = ['loginForm','registerForm','recoverForm','changePasswordForm'];
@@ -1242,11 +1238,27 @@ function switchAuthTab(tab) {
     forms.forEach((f, i) => document.getElementById(f)?.classList.toggle('active', i === map[tab]));
     tabs.forEach((t, i) => t.classList.toggle('active', i === map[tab]));
     document.getElementById('authMessage').innerHTML = '';
+    
+    // Reset UI per la registrazione
+    if (tab === 'register') {
+        const emailSection = document.getElementById('registerEmailSection');
+        const verifySection = document.getElementById('registerVerifySection');
+        const fullRegSection = document.getElementById('registerFullSection');
+        if (emailSection) emailSection.style.display = 'block';
+        if (verifySection) verifySection.style.display = 'none';
+        if (fullRegSection) fullRegSection.style.display = 'none';
+        emailVerified = false;
+        pendingRegistrationEmail = null;
+    }
 }
 
 function showAuthMessage(msg, ok = false) {
     const d = document.getElementById('authMessage');
-    if (d) d.innerHTML = `<span style="color:${ok ? '#00ff88' : '#ff4444'};">${msg}</span>`;
+    if (d) {
+        d.innerHTML = `<span style="color:${ok ? '#00ff88' : '#ff4444'};">${msg}</span>`;
+        d.style.display = 'block';
+        setTimeout(() => { d.style.display = 'none'; }, 5000);
+    }
 }
 
 function togglePwd(id, btn) {
@@ -1293,65 +1305,137 @@ function getTfaCode(containerId) {
     return Array.from(container.querySelectorAll('.tfa-digit')).map(d => d.value).join('');
 }
 
-document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email    = document.getElementById('loginEmail').value.trim().toLowerCase();
-    const password = document.getElementById('loginPassword').value;
-    const secretWord = document.getElementById('loginSecretWord').value;
-    const section2fa = document.getElementById('login2FASection');
-    const code2fa  = section2fa?.style.display !== 'none' ? getTfaCode('tfaInputs') : '';
-    const fingerprint = await generateFingerprint();
-
+// INVIARE CODICE DI VERIFICA EMAIL
+async function sendVerificationCode() {
+    const email = document.getElementById('regEmail').value.trim().toLowerCase();
+    
+    if (!email) {
+        showAuthMessage('❌ Inserisci la tua email');
+        return;
+    }
+    
     if (email !== 'antonio.pepice08@gmail.com') {
-        showAuthMessage('❌ Email non autorizzata. Accesso riservato.');
+        showAuthMessage('❌ Email non autorizzata. Solo email autorizzate possono registrarsi.');
         return;
     }
-
-    if (!secretWord) {
-        showAuthMessage('❌ Inserisci la parola segreta');
-        return;
-    }
-
+    
+    showAuthMessage('📧 Invio codice di verifica in corso...', true);
+    
     try {
-        const res  = await fetch('/api/auth/login', {
-            method:  'POST',
+        const res = await fetch('/api/auth/register-send-code', {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ email, password, secretWord, fingerprint, token: code2fa || undefined })
+            body: JSON.stringify({ email })
         });
+        
         const data = await res.json();
-
-        if (data.requiresTwoFactor) {
-            section2fa.style.display = 'flex';
-            initTfaInputs('tfaInputs');
-            showAuthMessage('🔐 Inserisci il codice 2FA dalla tua app Authenticator');
-            return;
-        }
-
+        
         if (data.success) {
-            localStorage.setItem('harry_token', data.token);
-            window.harry = new HarryInterface();
-            showAuthMessage('✅ Accesso effettuato!', true);
+            pendingRegistrationEmail = email;
+            showAuthMessage('✅ Codice di verifica inviato! Controlla la tua email.', true);
+            
+            // Mostra la sezione di verifica
+            document.getElementById('registerEmailSection').style.display = 'none';
+            document.getElementById('registerVerifySection').style.display = 'block';
+            initTfaInputs('verifyCodeInputs');
         } else {
             showAuthMessage(`❌ ${data.error}`);
         }
-    } catch {
-        showAuthMessage('❌ Errore di connessione');
+    } catch (err) {
+        showAuthMessage(`❌ Errore: ${err.message}`);
     }
-});
+}
 
+// VERIFICA CODICE EMAIL
+async function verifyEmailCode() {
+    const code = getTfaCode('verifyCodeInputs');
+    const email = pendingRegistrationEmail;
+    
+    if (!email) {
+        showAuthMessage('❌ Email non trovata. Richiedi un nuovo codice.');
+        return;
+    }
+    
+    if (code.length < 6) {
+        showAuthMessage('❌ Inserisci il codice a 6 cifre ricevuto via email');
+        return;
+    }
+    
+    showAuthMessage('🔐 Verifica codice in corso...', true);
+    
+    try {
+        const res = await fetch('/api/auth/verify-email-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, code })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            emailVerified = true;
+            showAuthMessage('✅ Email verificata! Ora completa la registrazione.', true);
+            
+            // Mostra il modulo completo di registrazione
+            document.getElementById('registerVerifySection').style.display = 'none';
+            document.getElementById('registerFullSection').style.display = 'block';
+        } else {
+            showAuthMessage(`❌ ${data.error}`);
+        }
+    } catch (err) {
+        showAuthMessage(`❌ Errore: ${err.message}`);
+    }
+}
+
+// RINVIO CODICE
+async function resendVerificationCode() {
+    const email = pendingRegistrationEmail;
+    
+    if (!email) {
+        showAuthMessage('❌ Nessuna email in attesa di verifica.');
+        return;
+    }
+    
+    showAuthMessage('📧 Invio nuovo codice...', true);
+    
+    try {
+        const res = await fetch('/api/auth/resend-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showAuthMessage('✅ Nuovo codice inviato! Controlla la tua email.', true);
+        } else {
+            showAuthMessage(`❌ ${data.error}`);
+        }
+    } catch (err) {
+        showAuthMessage(`❌ Errore: ${err.message}`);
+    }
+}
+
+// REGISTRAZIONE COMPLETA
 document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    if (!emailVerified) {
+        showAuthMessage('❌ Devi prima verificare la tua email.');
+        return;
+    }
+    
     const name = document.getElementById('regName').value.trim();
     const surname = document.getElementById('regSurname').value.trim();
-    const email = document.getElementById('regEmail').value.trim().toLowerCase();
+    const email = pendingRegistrationEmail;
     const password = document.getElementById('regPassword').value;
     const confirm = document.getElementById('regConfirmPassword').value;
     const secretWord = document.getElementById('regSecretWord').value;
     const fingerprint = await generateFingerprint();
 
-    if (email !== 'antonio.pepice08@gmail.com') {
-        showAuthMessage('❌ Email non autorizzata. Accesso riservato.');
+    if (!email) {
+        showAuthMessage('❌ Email non valida');
         return;
     }
 
@@ -1401,7 +1485,7 @@ document.getElementById('registerForm')?.addEventListener('submit', async (e) =>
 });
 
 async function confirmGoogleAuth() {
-    const email = window._pendingGaEmail || document.getElementById('regEmail')?.value.trim().toLowerCase();
+    const email = window._pendingGaEmail || pendingRegistrationEmail;
     const gaCode = getTfaCode('regGaInputs');
     
     if (gaCode.length < 6) {
@@ -1429,6 +1513,54 @@ async function confirmGoogleAuth() {
     }
 }
 
+// LOGIN
+document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email    = document.getElementById('loginEmail').value.trim().toLowerCase();
+    const password = document.getElementById('loginPassword').value;
+    const secretWord = document.getElementById('loginSecretWord').value;
+    const section2fa = document.getElementById('login2FASection');
+    const code2fa  = section2fa?.style.display !== 'none' ? getTfaCode('tfaInputs') : '';
+    const fingerprint = await generateFingerprint();
+
+    if (email !== 'antonio.pepice08@gmail.com') {
+        showAuthMessage('❌ Email non autorizzata. Accesso riservato.');
+        return;
+    }
+
+    if (!secretWord) {
+        showAuthMessage('❌ Inserisci la parola segreta');
+        return;
+    }
+
+    try {
+        const res  = await fetch('/api/auth/login', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ email, password, secretWord, fingerprint, token: code2fa || undefined })
+        });
+        const data = await res.json();
+
+        if (data.requiresTwoFactor) {
+            section2fa.style.display = 'flex';
+            initTfaInputs('tfaInputs');
+            showAuthMessage('🔐 Inserisci il codice 2FA dalla tua app Authenticator');
+            return;
+        }
+
+        if (data.success) {
+            localStorage.setItem('harry_token', data.token);
+            window.harry = new HarryInterface();
+            showAuthMessage('✅ Accesso effettuato!', true);
+        } else {
+            showAuthMessage(`❌ ${data.error}`);
+        }
+    } catch {
+        showAuthMessage('❌ Errore di connessione');
+    }
+});
+
+// RECUPERO
 async function sendRecoverCode() {
     const email = document.getElementById('recoverEmail')?.value;
     if (!email) { showAuthMessage('❌ Inserisci la tua email'); return; }
@@ -1484,6 +1616,7 @@ document.getElementById('recoverForm')?.addEventListener('submit', async (e) => 
     }
 });
 
+// CAMBIO PASSWORD
 document.getElementById('changePasswordForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email           = document.getElementById('changeEmail').value;
@@ -1551,4 +1684,5 @@ document.addEventListener('DOMContentLoaded', () => {
     initTfaInputs('tfaInputs');
     initTfaInputs('recoverTfaInputs');
     initTfaInputs('regGaInputs');
+    initTfaInputs('verifyCodeInputs');
 });

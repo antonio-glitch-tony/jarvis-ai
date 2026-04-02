@@ -1794,3 +1794,107 @@ textarea#userInput::placeholder { color: rgba(0,232,255,0.2); }
     .twofa-inputs { gap: 5px; }
     .tfa-digit { width: 32px !important; height: 38px; font-size: 1rem !important; }
 }
+/* ═══════════════════════════════════════════
+   MESSAGGI — header senza orario
+═══════════════════════════════════════════ */
+.message-header {
+    font-size: 0.65rem;
+    font-family: var(--font-ui);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: rgba(0,232,255,0.5);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+.user-message .message-header {
+    color: rgba(120,180,255,0.5);
+    text-align: right;
+}
+.system-message {
+    align-self: flex-start;
+    max-width: 85%;
+    display: flex;
+    flex-direction: column;
+}
+.system-message .message-content {
+    background: rgba(0,232,255,0.04);
+    border: 1px solid rgba(0,232,255,0.12);
+    color: rgba(220,245,255,0.9);
+    border-top-left-radius: 2px;
+    padding: 11px 15px;
+    border-radius: 10px;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.65;
+    word-break: break-word;
+}
+
+/* ═══════════════════════════════════════════
+   SIDEBAR — conv-item (classi usate dal JS)
+═══════════════════════════════════════════ */
+.sidebar-section-label {
+    font-size: 0.6rem;
+    font-family: var(--font-ui);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: rgba(0,232,255,0.35);
+    padding: 10px 4px 4px;
+    text-transform: uppercase;
+}
+.sidebar-empty-msg {
+    font-size: 0.72rem;
+    color: rgba(0,232,255,0.3);
+    font-family: var(--font-mono);
+    text-align: center;
+    padding: 20px 0;
+}
+.conv-item {
+    padding: 9px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.18s;
+    border: 1px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.conv-item:hover { background: rgba(0,232,255,0.05); border-color: rgba(0,232,255,0.08); }
+.conv-item.active { background: rgba(0,232,255,0.09); border-color: rgba(0,232,255,0.16); }
+
+.conv-item-icon {
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+.conv-item-text {
+    flex: 1;
+    overflow: hidden;
+}
+.conv-item-title {
+    font-size: 0.74rem;
+    color: rgba(0,232,255,0.82);
+    font-family: var(--font-mono);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.conv-item-date {
+    font-size: 0.6rem;
+    color: rgba(0,232,255,0.35);
+    font-family: var(--font-ui);
+    margin-top: 2px;
+}
+.conv-item-delete {
+    background: none;
+    border: none;
+    color: rgba(255,80,80,0);
+    cursor: pointer;
+    padding: 2px 4px;
+    font-size: 0.7rem;
+    border-radius: 4px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+    line-height: 1;
+}
+.conv-item:hover .conv-item-delete { color: rgba(255,80,80,0.4); }
+.conv-item-delete:hover { background: rgba(255,50,50,0.1); color: rgba(255,80,80,0.9) !important; }

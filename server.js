@@ -36,15 +36,16 @@ app.post('/api/code',                barryController.generateCode.bind(barryCont
 app.post('/api/debug',               barryController.debugCode.bind(barryController));
 app.post('/api/explain',             barryController.explain.bind(barryController));
 app.post('/api/exercise',            barryController.createExercise.bind(barryController));
-app.post('/api/generate-image',      barryController.generateImage.bind(barryController));  // NUOVA API PER IMMAGINI
+app.post('/api/generate-image',      barryController.generateImage.bind(barryController));
 app.get('/api/models',               barryController.getModels.bind(barryController));
 app.post('/api/models/switch',       barryController.switchModel.bind(barryController));
 app.get('/api/system/info',          barryController.getSystemInfo.bind(barryController));
 
 /* ═══════════════════════════════════════════════════════════
-   Auth Routes - COMPLETE
+   Auth Routes - COMPLETE CON VERIFICA EMAIL
 ═══════════════════════════════════════════════════════════ */
 app.post('/api/auth/register-send-code',  barryController.registerSendCode.bind(barryController));
+app.post('/api/auth/verify-email-code',   barryController.verifyEmailCode.bind(barryController));
 app.post('/api/auth/register',            barryController.register.bind(barryController));
 app.post('/api/auth/register-confirm-ga', barryController.registerConfirmGA.bind(barryController));
 app.post('/api/auth/verify-google-auth',  barryController.verifyGoogleAuth.bind(barryController));
@@ -54,6 +55,7 @@ app.post('/api/auth/reset-password',      barryController.resetPassword.bind(bar
 app.post('/api/auth/change-password',     barryController.changePassword.bind(barryController));
 app.get('/api/auth/me',                   barryController.me.bind(barryController));
 app.put('/api/auth/profile',              barryController.updateProfile.bind(barryController));
+app.post('/api/auth/resend-code',         barryController.resendVerificationCode.bind(barryController));
 
 // Route di debug
 app.post('/api/auth/debug/reset-users',   (req, res) => {
@@ -69,7 +71,8 @@ app.get('/api/auth/debug/users', (req, res) => {
     const users = global._users ? Object.keys(global._users).map(email => ({
         email,
         completed: global._users[email].completed,
-        hasFingerprint: !!global._users[email].fingerprint
+        hasFingerprint: !!global._users[email].fingerprint,
+        emailVerified: global._users[email].emailVerified || false
     })) : [];
     res.json({ success: true, users });
 });
@@ -125,6 +128,7 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`📡 Server running on http://localhost:${PORT}`);
     console.log(`👨‍💻 Creato da Antonio Pepice`);
     console.log(`🔐 2FA: Attivo con Google Authenticator`);
+    console.log(`📧 Verifica email: Attiva`);
     console.log(`🆔 Fingerprint: SHA-256`);
     console.log(`🤖 AI Model: OpenRouter`);
     console.log(`🖼️ Generazione Immagini: Pollinations AI (gratuita)`);
