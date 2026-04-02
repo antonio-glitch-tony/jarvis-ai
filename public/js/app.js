@@ -7,90 +7,60 @@
    MODE SYSTEM PROMPTS
 ══════════════════════════════════════════════════════════ */
 const MODE_PROMPTS = {
-    python: 'MODALITÀ PYTHON ATTIVA. Sei ora il massimo esperto di Python nel mondo...',
-    javascript: 'MODALITÀ JAVASCRIPT ATTIVA. Sei un guru di JavaScript/Node.js moderno...',
-    typescript: 'MODALITÀ TYPESCRIPT ATTIVA...',
-    java: 'MODALITÀ JAVA ATTIVA...',
-    cpp: 'MODALITÀ C++ ATTIVA...',
-    c: 'MODALITÀ C ATTIVA...',
-    csharp: 'MODALITÀ C# ATTIVA...',
-    go: 'MODALITÀ GO ATTIVA...',
-    rust: 'MODALITÀ RUST ATTIVA...',
-    php: 'MODALITÀ PHP ATTIVA...',
-    ruby: 'MODALITÀ RUBY ATTIVA...',
-    swift: 'MODALITÀ SWIFT ATTIVA...',
-    kotlin: 'MODALITÀ KOTLIN ATTIVA...',
-    html: 'MODALITÀ HTML/CSS ATTIVA...',
-    sql: 'MODALITÀ SQL ATTIVA...',
-    bash: 'MODALITÀ BASH/SHELL ATTIVA...',
-    study: 'MODALITÀ STUDIO ATTIVA. Sei un tutor accademico...',
-    translate: 'MODALITÀ TRADUZIONE ATTIVA...',
-    summarize: 'MODALITÀ RIASSUNTO ATTIVA...',
-    debug: 'MODALITÀ DEBUG ATTIVA...',
-    explain: 'MODALITÀ SPIEGAZIONE ATTIVA...',
-    math: 'MODALITÀ MATEMATICA ATTIVA...',
-    creative: 'MODALITÀ CREATIVA ATTIVA...',
-    security: 'MODALITÀ CYBERSECURITY ATTIVA...',
-    devops: 'MODALITÀ DEVOPS ATTIVA...',
-    ml: 'MODALITÀ MACHINE LEARNING/AI ATTIVA...',
+    python: 'MODALITÀ PYTHON ATTIVA. Sei ora il massimo esperto di Python nel mondo. Rispondi sempre in italiano con codice ben formattato.',
+    javascript: 'MODALITÀ JAVASCRIPT ATTIVA. Sei un guru di JavaScript/Node.js moderno. Rispondi sempre in italiano con esempi di codice.',
+    typescript: 'MODALITÀ TYPESCRIPT ATTIVA. Sei un esperto di TypeScript. Rispondi sempre in italiano.',
+    java: 'MODALITÀ JAVA ATTIVA. Sei un esperto di Java e Spring Boot. Rispondi sempre in italiano.',
+    cpp: 'MODALITÀ C++ ATTIVA. Sei un esperto di C++ moderno. Rispondi sempre in italiano.',
+    c: 'MODALITÀ C ATTIVA. Sei un esperto di programmazione C. Rispondi sempre in italiano.',
+    csharp: 'MODALITÀ C# ATTIVA. Sei un esperto di C# e .NET. Rispondi sempre in italiano.',
+    go: 'MODALITÀ GO ATTIVA. Sei un esperto di Golang. Rispondi sempre in italiano.',
+    rust: 'MODALITÀ RUST ATTIVA. Sei un esperto di Rust. Rispondi sempre in italiano.',
+    php: 'MODALITÀ PHP ATTIVA. Sei un esperto di PHP moderno. Rispondi sempre in italiano.',
+    ruby: 'MODALITÀ RUBY ATTIVA. Sei un esperto di Ruby on Rails. Rispondi sempre in italiano.',
+    swift: 'MODALITÀ SWIFT ATTIVA. Sei un esperto di Swift e iOS. Rispondi sempre in italiano.',
+    kotlin: 'MODALITÀ KOTLIN ATTIVA. Sei un esperto di Kotlin e Android. Rispondi sempre in italiano.',
+    html: 'MODALITÀ HTML/CSS ATTIVA. Sei un esperto di HTML5, CSS3 e responsive design. Rispondi sempre in italiano.',
+    sql: 'MODALITÀ SQL ATTIVA. Sei un esperto di database SQL. Rispondi sempre in italiano.',
+    bash: 'MODALITÀ BASH/SHELL ATTIVA. Sei un esperto di scripting shell. Rispondi sempre in italiano.',
+    study: 'MODALITÀ STUDIO ATTIVA. Sei un tutor accademico che spiega in modo chiaro e approfondito. Rispondi sempre in italiano.',
+    translate: 'MODALITÀ TRADUZIONE ATTIVA. Sei un traduttore professionista. Traduci sempre in italiano in modo accurato.',
+    summarize: 'MODALITÀ RIASSUNTO ATTIVA. Sei un esperto nel riassumere testi mantenendo i concetti chiave. Rispondi sempre in italiano.',
+    debug: 'MODALITÀ DEBUG ATTIVA. Sei un esperto nel debugging. Analizzi il codice e trovi errori. Rispondi sempre in italiano.',
+    explain: 'MODALITÀ SPIEGAZIONE ATTIVA. Spieghi concetti complessi in modo semplice e chiaro. Rispondi sempre in italiano.',
+    math: 'MODALITÀ MATEMATICA ATTIVA. Sei un professore di matematica. Risolvi problemi passo passo. Rispondi sempre in italiano.',
+    creative: 'MODALITÀ CREATIVA ATTIVA. Sei uno scrittore creativo. Rispondi sempre in italiano con stile narrativo.',
+    security: 'MODALITÀ CYBERSECURITY ATTIVA. Sei un esperto di sicurezza informatica. Rispondi sempre in italiano.',
+    devops: 'MODALITÀ DEVOPS ATTIVA. Sei un esperto di DevOps e CI/CD. Rispondi sempre in italiano.',
+    ml: 'MODALITÀ MACHINE LEARNING/AI ATTIVA. Sei un esperto di AI/ML. Rispondi sempre in italiano.',
 };
 
 /* ══════════════════════════════════════════════════════════
-   GENERA IMPRONTA DIGITALE (FINGERPRINT)
+   GENERA IMPRONTA DIGITALE (FINGERPRINT) - VERSIONE STABILE PER TELEFONO
 ══════════════════════════════════════════════════════════ */
 async function generateFingerprint() {
     try {
+        // Componenti più stabili per dispositivi mobili (evitiamo canvas e webgl che variano)
         const components = [
             navigator.userAgent || 'unknown',
             navigator.language || 'unknown',
-            screen.width + 'x' + screen.height + 'x' + screen.colorDepth,
+            screen.width + 'x' + screen.height,
             new Date().getTimezoneOffset(),
             navigator.hardwareConcurrency || 'unknown',
-            navigator.deviceMemory || 'unknown',
-            !!navigator.plugins?.length,
             !!window.chrome,
             !!navigator.webdriver,
             Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown',
-            await getCanvasFingerprint(),
-            await getWebGLFingerprint(),
             window.screen.availWidth + 'x' + window.screen.availHeight,
-            navigator.maxTouchPoints || 0
+            navigator.maxTouchPoints || 0,
+            'BARRY_FINGERPRINT_SALT_v1'
         ];
         const fingerprint = components.join('|');
         return await sha256(fingerprint);
     } catch (e) {
         console.error('Fingerprint error:', e);
-        return await sha256(Date.now() + navigator.userAgent + Math.random());
+        // Fallback stabile
+        return await sha256(navigator.userAgent + screen.width + screen.height + 'BARRY_FALLBACK');
     }
-}
-
-async function getCanvasFingerprint() {
-    try {
-        const canvas = document.createElement('canvas');
-        canvas.width = 200;
-        canvas.height = 50;
-        const ctx = canvas.getContext('2d');
-        ctx.textBaseline = 'top';
-        ctx.font = '14px Arial';
-        ctx.fillStyle = '#f60';
-        ctx.fillRect(0, 0, 100, 40);
-        ctx.fillStyle = '#069';
-        ctx.fillText('BARRY', 2, 15);
-        return canvas.toDataURL();
-    } catch(e) { return 'canvas_error_' + Date.now(); }
-}
-
-async function getWebGLFingerprint() {
-    try {
-        const canvas = document.createElement('canvas');
-        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-        if (!gl) return 'webgl_not_supported';
-        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-        if (debugInfo) {
-            return gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-        }
-        return 'webgl_no_info';
-    } catch(e) { return 'webgl_error'; }
 }
 
 async function sha256(message) {
@@ -378,19 +348,19 @@ class BarryInterface {
         
         // Fix: Rendi le funzioni accessibili globalmente
         window.barry = this;
-        window.toggleHologram = () => this.toggleHologram();
-        window.showProfile = () => this.showProfile();
-        window.logout = () => this.logout();
     }
 
     initCapabilitiesDropdown() {
         const dropdown = document.getElementById('capabilitiesDropdown');
         if (!dropdown) return;
         
-        dropdown.addEventListener('click', (e) => {
-            e.stopPropagation();
-            dropdown.classList.toggle('open');
-        });
+        const btn = dropdown.querySelector('.dropdown-btn');
+        if (btn) {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle('open');
+            });
+        }
         
         document.addEventListener('click', () => {
             dropdown.classList.remove('open');
@@ -766,6 +736,9 @@ class BarryInterface {
         } catch (e) { console.error(e); }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // CREATE NEW CHAT - MESSAGGIO PULITO SENZA [CRITTOGRAFATO]
+    // ═══════════════════════════════════════════════════════════
     async createNewChat() {
         try {
             const res  = await fetch('/api/chat/new', {
@@ -780,9 +753,8 @@ class BarryInterface {
                 this.clearMode();
                 this.fileMemory.clear();
                 
-                const name = this.currentUser?.name || 'Signore';
-                // RIMOSSO [CRITTOGRAFATO]
-                const creatorMessage = `Buongiorno, ${name}! Sono B.A.R.R.Y., il suo assistente personale creato da **Antonio Pepice**. Posso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`;
+                // MESSAGGIO PULITO - SENZA [CRITTOGRAFATO]
+                const creatorMessage = `Buongiorno! Sono B.A.R.R.Y., il suo assistente personale creato da **Antonio Pepice**. Posso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`;
                 
                 this.addMessage('BARRY', creatorMessage, 'assistant', [], true);
                 await this.loadConversations();
@@ -1042,7 +1014,7 @@ class BarryInterface {
               <div class="profile-info">
                 <div class="info-group">
                   <label>NOME</label>
-                  <input type="text" id="profileName" value="${this.escapeHtml(u?.name || '')}">
+                  <input type="text" id="profileName" value="${this.escapeHtml(u?.name || 'Utente')}">
                 </div>
                 <div class="info-group">
                   <label>COGNOME</label>
@@ -1665,6 +1637,16 @@ function closeAuthHologramVoice() {
         window.barry.closeAuthHologramVoice();
     }
 }
+
+// Funzioni globali per i bottoni HTML
+window.toggleHologram = () => window.barry?.toggleHologram();
+window.showProfile = () => window.barry?.showProfile();
+window.logout = () => window.barry?.logout();
+window.closeSidebar = () => window.barry?.closeSidebar();
+window.createNewChat = () => window.barry?.createNewChat();
+window.startListening = () => window.barry?.startListening();
+window.uploadFile = (file) => window.barry?.uploadFile(file);
+window.clearMode = () => window.barry?.clearMode();
 
 document.addEventListener('DOMContentLoaded', () => {
     window.barry = new BarryInterface();
