@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   J.A.R.V.I.S. — Controller v2.0 SYNC EDITION
+   H.A.R.R.Y. — Controller v2.0 SYNC EDITION
    Le chat sono legate all'account via JWT.
    Ogni dispositivo vede e modifica le stesse chat.
    ═══════════════════════════════════════════════════════════ */
@@ -11,7 +11,7 @@ const speakeasy = require('speakeasy');
 const qrcode    = require('qrcode');
 
 const ALLOWED_EMAIL = 'antonio.pepice08@gmail.com';
-const JWT_SECRET    = process.env.JWT_SECRET || 'jarvis_secret_key_2024';
+const JWT_SECRET    = process.env.JWT_SECRET || 'harry_secret_key_2024';
 
 /* ── Helper: estrae userId dal token JWT nell'header Authorization ── */
 function getUserIdFromReq(req) {
@@ -20,7 +20,6 @@ function getUserIdFromReq(req) {
     try {
         const token   = authHeader.split(' ')[1];
         const decoded = jwt.verify(token, JWT_SECRET);
-        // Usa l'email normalizzata come userId stabile (univoco per account)
         return decoded.email ? decoded.email.trim().toLowerCase() : null;
     } catch (e) {
         return null;
@@ -35,7 +34,7 @@ function requireAuth(req, res, next) {
     next();
 }
 
-class JarviController {
+class HarryController {
 
     /* ══════════════════════════════════
        CHAT — sincronizzate per account
@@ -64,10 +63,8 @@ class JarviController {
             let convId = conversationId;
 
             if (!convId) {
-                // Nuova conversazione — titolo = primo messaggio troncato
                 convId = await chatDB.createConversation(userId, message.substring(0, 50));
             } else {
-                // Verifica che la conversazione appartenga all'utente
                 const owned = await chatDB.conversationBelongsToUser(convId, userId);
                 if (!owned) return res.status(403).json({ error: 'Accesso negato a questa conversazione' });
             }
@@ -92,7 +89,6 @@ class JarviController {
         }
     }
 
-    /* Restituisce SOLO le conversazioni di questo account (cross-device sync) */
     async getConversations(req, res) {
         try {
             const userId = getUserIdFromReq(req);
@@ -122,7 +118,6 @@ class JarviController {
         }
     }
 
-    /* Elimina definitivamente la conversazione (per tutti i dispositivi) */
     async deleteConversation(req, res) {
         try {
             const userId = getUserIdFromReq(req);
@@ -259,7 +254,7 @@ class JarviController {
             const hashedSecretWord = await bcrypt.hash(secretWord, 10);
 
             const secret = speakeasy.generateSecret({
-                name:   `J.A.R.V.I.S. (${normalizedEmail})`,
+                name:   `H.A.R.R.Y. (${normalizedEmail})`,
                 length: 32
             });
 
@@ -317,7 +312,7 @@ class JarviController {
                 JWT_SECRET,
                 { expiresIn: '7d' }
             );
-            res.json({ success: true, token, message: 'Benvenuto in JARVIS! 2FA attiva.' });
+            res.json({ success: true, token, message: 'Benvenuto in HARRY! 2FA attiva.' });
         } catch (e) {
             console.error('Errore verifyGoogleAuth:', e);
             res.status(500).json({ error: e.message });
@@ -461,4 +456,4 @@ class JarviController {
     async githubCallback(req, res) { res.redirect('/'); }
 }
 
-module.exports = new JarviController();
+module.exports = new HarryController();

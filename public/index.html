@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>J.A.R.V.I.S. - Sistema di Sicurezza Avanzato v4.0</title>
+    <title>H.A.R.R.Y. - Sistema di Sicurezza Avanzato v4.0</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
@@ -13,7 +13,7 @@
 
     <!-- ══════════════════════════════════ AUTH PAGE ══════════════════════════════════ -->
     <div id="authPage" class="auth-container">
-        <div class="jarvis-hologram" onclick="openAuthHologramVoice()" title="Clicca per parlare con JARVIS" style="cursor:pointer;">
+        <div class="jarvis-hologram" id="authHologramTrigger" style="cursor:pointer;">
             <div class="hologram-container">
                 <canvas id="hologramCanvas" width="300" height="300"></canvas>
                 <div class="hologram-ring ring-1"></div>
@@ -24,8 +24,8 @@
                     TOCCA PER PARLARE
                 </div>
             </div>
-            <div class="hologram-text">J.A.R.V.I.S.</div>
-            <div class="hologram-sub">Just A Rather Very Intelligent System</div>
+            <div class="hologram-text">H.A.R.R.Y.</div>
+            <div class="hologram-sub">Hyper-Adaptive Responsive Robotic Intelligence</div>
             <div class="hologram-status">
                 <span class="h-dot"></span> SISTEMA OPERATIVO
             </div>
@@ -35,11 +35,11 @@
         <div id="authHoloOverlay" class="auth-holo-overlay" style="display:none;">
             <div class="auth-holo-inner">
                 <div class="auth-holo-topbar">
-                    <span class="auth-holo-title">J.A.R.V.I.S. — INTERFACCIA VOCALE</span>
+                    <span class="auth-holo-title">H.A.R.R.Y. — INTERFACCIA VOCALE</span>
                     <button class="auth-holo-close" onclick="closeAuthHologramVoice()">✕ CHIUDI</button>
                 </div>
                 <div class="auth-holo-body">
-                    <div class="auth-holo-canvas-wrap">
+                    <div class="auth-holo-canvas-wrap" id="authHoloCanvasTrigger">
                         <canvas id="authHoloCanvas" width="340" height="340"></canvas>
                         <div class="auth-holo-rings">
                             <div class="ahr ahr1"></div>
@@ -52,27 +52,9 @@
                     <div class="auth-holo-panel">
                         <div class="auth-holo-status-bar">
                             <span class="auth-holo-dot"></span>
-                            <span id="authHoloStatusText">IN ASCOLTO...</span>
+                            <span id="authHoloStatusText">CLICCA SULL'OLOGRAMMA PER PARLARE</span>
                         </div>
                         <div id="authHoloMessages" class="auth-holo-messages"></div>
-                        <div class="auth-holo-mic-zone">
-                            <button id="authHoloMicBtn" class="auth-holo-mic-btn" onclick="toggleAuthHoloListening()">
-                                <div class="mic-icon-wrap">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                                        <line x1="12" y1="19" x2="12" y2="23"/>
-                                        <line x1="8" y1="23" x2="16" y2="23"/>
-                                    </svg>
-                                </div>
-                                <div class="mic-rings">
-                                    <div class="mic-ring mr1"></div>
-                                    <div class="mic-ring mr2"></div>
-                                    <div class="mic-ring mr3"></div>
-                                </div>
-                            </button>
-                            <div class="auth-holo-mic-label">TIENI PREMUTO O CLICCA PER PARLARE</div>
-                        </div>
                         <div class="auth-holo-waveform" id="authHoloWave">
                             <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
                             <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
@@ -81,7 +63,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="auth-holo-footer">J.A.R.V.I.S. — Sistema Operativo Avanzato | Antonio Pepice</div>
+                <div class="auth-holo-footer">H.A.R.R.Y. — Sistema Operativo Avanzato | Antonio Pepice</div>
             </div>
         </div>
 
@@ -181,7 +163,7 @@
             </form>
 
             <form id="changePasswordForm" class="auth-form">
-                <p class="form-desc">Cambia la password del tuo account JARVIS.</p>
+                <p class="form-desc">Cambia la password del tuo account HARRY.</p>
                 <input type="email"    id="changeEmail"           placeholder="La tua Email" required>
                 <div class="password-wrap">
                     <input type="password" id="changeCurrentPassword" placeholder="Password attuale" required>
@@ -209,29 +191,29 @@
     <!-- ══════════════════════════════════ CHAT PAGE ══════════════════════════════════ -->
     <div id="chatPage" style="display:none; position:relative;">
 
-        <button class="hamburger-btn" id="hamburgerBtn" onclick="window.jarvis.toggleSidebar()">
+        <button class="hamburger-btn" id="hamburgerBtn" onclick="window.harry.toggleSidebar()">
             <span></span><span></span><span></span>
         </button>
 
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <div class="sidebar-logo">J.A.R.V.I.S.</div>
-                <button class="close-sidebar" onclick="window.jarvis.closeSidebar()">✕</button>
+                <div class="sidebar-logo">H.A.R.R.Y.</div>
+                <button class="close-sidebar" onclick="window.harry.closeSidebar()">✕</button>
             </div>
-            <button class="new-chat-btn-full" onclick="window.jarvis.createNewChat()">
+            <button class="new-chat-btn-full" onclick="window.harry.createNewChat()">
                 ✦ Nuova Chat
             </button>
             <div id="conversationsList" class="conversations-scroll"></div>
         </div>
-        <div id="sidebarOverlay" class="sidebar-overlay" onclick="window.jarvis.toggleSidebar()"></div>
+        <div id="sidebarOverlay" class="sidebar-overlay" onclick="window.harry.toggleSidebar()"></div>
 
         <div class="main-content">
             <div class="scan-line"></div>
             <div class="container">
 
                 <div class="header">
-                    <div class="glow-text">J.A.R.V.I.S.</div>
-                    <div class="subtitle">Just A Rather Very Intelligent System</div>
+                    <div class="glow-text">H.A.R.R.Y.</div>
+                    <div class="subtitle">Hyper-Adaptive Responsive Robotic Intelligence</div>
                     <div class="status-indicator">
                         <span class="status-led"></span>
                         <span class="status-text">SISTEMA ONLINE</span>
@@ -239,8 +221,8 @@
                         <span class="creator-badge">Creato da Antonio Pepice</span>
                     </div>
                     <div class="header-buttons">
-                        <button onclick="window.jarvis.toggleHologram()" class="holo-btn">🌀 OLOGRAMMA</button>
-                        <button onclick="window.jarvis.showProfile()" class="profile-btn">👤 PROFILO</button>
+                        <button onclick="window.harry.toggleHologram()" class="holo-btn">🌀 OLOGRAMMA</button>
+                        <button onclick="window.harry.showProfile()" class="profile-btn">👤 PROFILO</button>
                         <button onclick="logout()" class="logout-btn">🚪 ESC</button>
                     </div>
                 </div>
@@ -249,21 +231,21 @@
                     <div class="chat-messages" id="chatMessages">
                         <div class="welcome-message">
                             <div class="welcome-icon">🤖</div>
-                            <div class="welcome-text">Benvenuto in JARVIS<br>Sistema di Sicurezza Avanzato v4.0</div>
+                            <div class="welcome-text">Benvenuto in HARRY<br>Sistema di Sicurezza Avanzato v4.0</div>
                             <div class="security-status">🔐 Crittografia End-to-End Attiva | Fingerprint SHA-256</div>
                         </div>
                     </div>
 
                     <div id="activeModeBar" class="active-mode-bar" style="display:none;">
                         <span id="activeModeText"></span>
-                        <button onclick="window.jarvis.clearMode()" class="clear-mode-btn">✕ Esci modalità</button>
+                        <button onclick="window.harry.clearMode()" class="clear-mode-btn">✕ Esci modalità</button>
                     </div>
 
                     <div class="input-container">
-                        <button id="micBtn" class="mic-button" onclick="window.jarvis.startListening()">🎤</button>
+                        <button id="micBtn" class="mic-button" onclick="window.harry.startListening()">🎤</button>
                         <label for="fileInput" class="file-button">📎</label>
-                        <input type="file" id="fileInput" style="display:none;" onchange="window.jarvis.uploadFile(this.files[0])">
-                        <textarea id="userInput" placeholder="Scrivi o parla con JARVIS..." rows="1"></textarea>
+                        <input type="file" id="fileInput" style="display:none;" onchange="window.harry.uploadFile(this.files[0])">
+                        <textarea id="userInput" placeholder="Scrivi o parla con HARRY..." rows="1"></textarea>
                         <button id="sendBtn" class="send-button">
                             <div class="button-glow"></div>
                             INVIA
@@ -303,6 +285,7 @@
                                 <div class="dropdown-item" data-mode="summarize" data-label="Riassunto">📝 Riassunto</div>
                                 <div class="dropdown-item" data-mode="debug" data-label="Debug">🐛 Debug</div>
                                 <div class="dropdown-item" data-mode="explain" data-label="Spiegazione">📚 Spiegazione</div>
+                                <div class="dropdown-item" data-mode="study" data-label="Studio">📖 Studio</div>
                                 <div class="dropdown-item" data-mode="math" data-label="Matematica">∑ Matematica</div>
                                 <div class="dropdown-item" data-mode="creative" data-label="Creativa">🎨 Creativa</div>
                                 <div class="dropdown-item" data-mode="security" data-label="Cybersecurity">🛡️ Security</div>
@@ -326,15 +309,15 @@
             </div>
         </div>
 
-        <!-- Ologramma JARVIS fullscreen — SOLO VOCE -->
-        <div id="holoJarvis" class="holo-jarvis" style="display:none;">
+        <!-- Ologramma HARRY fullscreen — CLICCA SULL'OLOGRAMMA PER PARLARE -->
+        <div id="holoHarry" class="holo-jarvis" style="display:none;">
             <div class="holo-fullscreen-overlay">
                 <div class="holo-top-bar">
-                    <div class="holo-title-bar">J.A.R.V.I.S. <span class="holo-online-dot"></span> ONLINE</div>
-                    <button class="holo-close" onclick="window.jarvis.toggleHologram()">✕ CHIUDI</button>
+                    <div class="holo-title-bar">H.A.R.R.Y. <span class="holo-online-dot"></span> ONLINE</div>
+                    <button class="holo-close" onclick="window.harry.toggleHologram()">✕ CHIUDI</button>
                 </div>
                 <div class="holo-body">
-                    <div class="holo-canvas-wrap">
+                    <div class="holo-canvas-wrap" id="holoCanvasTrigger">
                         <canvas id="holoCanvas" width="380" height="380"></canvas>
                         <div class="holo-rings">
                             <div class="holo-ring hr1"></div>
@@ -348,40 +331,22 @@
                     <div class="holo-chat-panel">
                         <div class="holo-status-strip">
                             <span class="holo-strip-dot"></span>
-                            <span id="holoStatusText">PRONTO — CLICCA IL MICROFONO</span>
+                            <span id="holoStatusText">CLICCA SULL'OLOGRAMMA PER PARLARE</span>
                         </div>
                         <div id="holoMessages" class="holo-messages"></div>
-                        <div class="holo-voice-zone">
-                            <div class="holo-waveform" id="holoWaveform">
-                                <div class="hbar"></div><div class="hbar"></div><div class="hbar"></div>
-                                <div class="hbar"></div><div class="hbar"></div><div class="hbar"></div>
-                                <div class="hbar"></div><div class="hbar"></div><div class="hbar"></div>
-                                <div class="hbar"></div><div class="hbar"></div><div class="hbar"></div>
-                            </div>
-                            <button id="holoMicBtn" class="holo-mic-btn" onclick="window.jarvis.startHoloListening()">
-                                <div class="holo-mic-inner">
-                                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-                                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                                        <line x1="12" y1="19" x2="12" y2="23"/>
-                                        <line x1="8" y1="23" x2="16" y2="23"/>
-                                    </svg>
-                                </div>
-                                <div class="holo-mic-rings">
-                                    <div class="hmr hmr1"></div>
-                                    <div class="hmr hmr2"></div>
-                                    <div class="hmr hmr3"></div>
-                                </div>
-                            </button>
-                            <div class="holo-voice-hint">INTERFACCIA VOCALE ATTIVA — SOLO VOCE</div>
+                        <div class="holo-waveform" id="holoWaveform">
+                            <div class="hbar"></div><div class="hbar"></div><div class="hbar"></div>
+                            <div class="hbar"></div><div class="hbar"></div><div class="hbar"></div>
+                            <div class="hbar"></div><div class="hbar"></div><div class="hbar"></div>
+                            <div class="hbar"></div><div class="hbar"></div><div class="hbar"></div>
                         </div>
                     </div>
                 </div>
-                <div class="holo-label">J.A.R.V.I.S. — Sistema Operativo Avanzato | Creato da Antonio Pepice</div>
+                <div class="holo-label">H.A.R.R.Y. — Sistema Operativo Avanzato | Creato da Antonio Pepice</div>
             </div>
         </div>
 
-        <div id="speakingIndicator"  class="speaking-indicator"  style="display:none;">🔴 JARVIS STA PARLANDO...</div>
+        <div id="speakingIndicator"  class="speaking-indicator"  style="display:none;">🔴 HARRY STA PARLANDO...</div>
         <div id="listeningIndicator" class="listening-indicator" style="display:none;">🎤 IN ASCOLTO...</div>
     </div>
 

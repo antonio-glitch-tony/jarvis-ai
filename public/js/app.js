@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   J.A.R.V.I.S. — Frontend App v4.0
+   H.A.R.R.Y. — Frontend App v4.0
    Autore: Antonio Pepice
    ═══════════════════════════════════════════════════════════ */
 
@@ -23,25 +23,7 @@ const MODE_PROMPTS = {
     html: 'MODALITÀ HTML/CSS ATTIVA...',
     sql: 'MODALITÀ SQL ATTIVA...',
     bash: 'MODALITÀ BASH/SHELL ATTIVA...',
-    dart: 'MODALITÀ DART/FLUTTER ATTIVA...',
-    scala: 'MODALITÀ SCALA ATTIVA...',
-    haskell: 'MODALITÀ HASKELL ATTIVA...',
-    r: 'MODALITÀ R ATTIVA...',
-    matlab: 'MODALITÀ MATLAB ATTIVA...',
-    julia: 'MODALITÀ JULIA ATTIVA...',
-    lua: 'MODALITÀ LUA ATTIVA...',
-    elixir: 'MODALITÀ ELIXIR ATTIVA...',
-    erlang: 'MODALITÀ ERLANG ATTIVA...',
-    clojure: 'MODALITÀ CLOJURE ATTIVA...',
-    fsharp: 'MODALITÀ F# ATTIVA...',
-    ocaml: 'MODALITÀ OCAML ATTIVA...',
-    assembly: 'MODALITÀ ASSEMBLY ATTIVA...',
-    zig: 'MODALITÀ ZIG ATTIVA...',
-    nim: 'MODALITÀ NIM ATTIVA...',
-    wasm: 'MODALITÀ WEBASSEMBLY ATTIVA...',
-    glsl: 'MODALITÀ GLSL/HLSL ATTIVA...',
-    powershell: 'MODALITÀ POWERSHELL ATTIVA...',
-    cobol: 'MODALITÀ COBOL ATTIVA...',
+    study: 'MODALITÀ STUDIO ATTIVA. Sei un tutor accademico. Analizzerai i file allegati e risponderai alle domande in modo didattico e approfondito...',
     translate: 'MODALITÀ TRADUZIONE ATTIVA...',
     summarize: 'MODALITÀ RIASSUNTO ATTIVA...',
     debug: 'MODALITÀ DEBUG ATTIVA...',
@@ -54,25 +36,33 @@ const MODE_PROMPTS = {
 };
 
 /* ══════════════════════════════════════════════════════════
-   GENERA IMPRONTA DIGITALE (FINGERPRINT) - FUNZIONANTE
+   GENERA IMPRONTA DIGITALE (FINGERPRINT) - FIXATA
 ══════════════════════════════════════════════════════════ */
 async function generateFingerprint() {
-    const components = [
-        navigator.userAgent,
-        navigator.language,
-        screen.width + 'x' + screen.height + 'x' + screen.colorDepth,
-        new Date().getTimezoneOffset(),
-        navigator.hardwareConcurrency || 'unknown',
-        navigator.deviceMemory || 'unknown',
-        !!navigator.plugins.length,
-        !!window.chrome,
-        !!navigator.webdriver,
-        Intl.DateTimeFormat().resolvedOptions().timeZone,
-        await getCanvasFingerprint(),
-        await getWebGLFingerprint()
-    ];
-    const fingerprint = components.join('|');
-    return await sha256(fingerprint);
+    try {
+        const components = [
+            navigator.userAgent || 'unknown',
+            navigator.language || 'unknown',
+            screen.width + 'x' + screen.height + 'x' + screen.colorDepth,
+            new Date().getTimezoneOffset(),
+            navigator.hardwareConcurrency || 'unknown',
+            navigator.deviceMemory || 'unknown',
+            !!navigator.plugins?.length,
+            !!window.chrome,
+            !!navigator.webdriver,
+            Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown',
+            await getCanvasFingerprint(),
+            await getWebGLFingerprint(),
+            window.screen.availWidth + 'x' + window.screen.availHeight,
+            navigator.maxTouchPoints || 0
+        ];
+        const fingerprint = components.join('|');
+        return await sha256(fingerprint);
+    } catch (e) {
+        console.error('Fingerprint error:', e);
+        // Fallback fingerprint
+        return await sha256(Date.now() + navigator.userAgent + Math.random());
+    }
 }
 
 async function getCanvasFingerprint() {
@@ -86,9 +76,9 @@ async function getCanvasFingerprint() {
         ctx.fillStyle = '#f60';
         ctx.fillRect(0, 0, 100, 40);
         ctx.fillStyle = '#069';
-        ctx.fillText('JARVIS', 2, 15);
+        ctx.fillText('HARRY', 2, 15);
         return canvas.toDataURL();
-    } catch(e) { return 'canvas_error'; }
+    } catch(e) { return 'canvas_error_' + Date.now(); }
 }
 
 async function getWebGLFingerprint() {
@@ -114,7 +104,7 @@ async function sha256(message) {
 /* ══════════════════════════════════════════════════════════
    HOLOGRAM — Avengers: Age of Ultron style (CON VOICE)
 ══════════════════════════════════════════════════════════ */
-class JarvisHologram {
+class HarryHologram {
     constructor(canvasId, size = 380) {
         this.canvas = document.getElementById(canvasId);
         if (!this.canvas) return;
@@ -302,10 +292,10 @@ class FileMemoryManager {
 /* ══════════════════════════════════════════════════════════
    MAIN INTERFACE CLASS
 ══════════════════════════════════════════════════════════ */
-class JarvisInterface {
+class HarryInterface {
     constructor() {
         this.apiUrl             = '';
-        this.token              = localStorage.getItem('jarvis_token');
+        this.token              = localStorage.getItem('harry_token');
         this.currentUser        = null;
         this.currentConversationId = null;
         this.conversations      = [];
@@ -348,15 +338,21 @@ class JarvisInterface {
         document.getElementById('authPage').style.display  = 'flex';
         document.getElementById('chatPage').style.display  = 'none';
         this.token = null;
-        localStorage.removeItem('jarvis_token');
+        localStorage.removeItem('harry_token');
         this._startAuthHologram();
     }
 
     _startAuthHologram() {
         if (!this.authHologram) {
-            this.authHologram = new JarvisHologram('hologramCanvas', 300);
+            this.authHologram = new HarryHologram('hologramCanvas', 300);
         }
         this.authHologram.start();
+        
+        // Attach click listener to auth hologram
+        const authHoloTrigger = document.getElementById('authHologramTrigger');
+        if (authHoloTrigger) {
+            authHoloTrigger.onclick = () => this.openAuthHologramVoice();
+        }
     }
 
     initChat() {
@@ -452,6 +448,7 @@ class JarvisInterface {
             summarize: 'Incolla il testo da riassumere...',
             debug: 'Incolla il codice da analizzare...',
             explain: 'Cosa devo spiegarle, Signore?',
+            study: 'Che argomento vuoi studiare oggi, Signore?',
             math: 'Inserisci il problema matematico...',
         };
         if (this.userInput) {
@@ -464,10 +461,11 @@ class JarvisInterface {
             javascript: `Eccellente scelta, Sir. **Modalità JavaScript** online...`,
             debug: `**Modalità Debug** attivata, Signore...`,
             translate: `**Modalità Traduzione** attivata...`,
+            study: `**Modalità Studio** attivata, Signore. Analizzerò i file e risponderò alle domande in modo approfondito.`,
             creative: `**Modalità Creativa** attivata, Signore...`,
         };
         const greeting = greetings[mode] || `Modalità **${modeLabel}** attivata, Signore. Come posso assisterla?`;
-        this.addMessage('JARVIS', greeting, 'assistant', [], true);
+        this.addMessage('HARRY', greeting, 'assistant', [], true);
     }
 
     clearMode() {
@@ -481,12 +479,12 @@ class JarvisInterface {
         }
         
         if (this.userInput) {
-            this.userInput.placeholder = 'Scrivi o parla con JARVIS...';
+            this.userInput.placeholder = 'Scrivi o parla con HARRY...';
         }
     }
 
     toggleHologram() {
-        const el          = document.getElementById('holoJarvis');
+        const el          = document.getElementById('holoHarry');
         const mainContent = document.querySelector('.main-content');
         const sidebar     = document.getElementById('sidebar');
         const hamburger   = document.getElementById('hamburgerBtn');
@@ -498,12 +496,18 @@ class JarvisInterface {
             if (mainContent) mainContent.style.visibility = 'hidden';
             if (sidebar)     sidebar.style.visibility     = 'hidden';
             if (hamburger)   hamburger.style.visibility   = 'hidden';
-            if (!this.hologram) this.hologram = new JarvisHologram('holoCanvas', 380);
+            if (!this.hologram) this.hologram = new HarryHologram('holoCanvas', 380);
             this.hologram.start();
             this.initHoloSpeechRecognition();
-            // Update status text
+            
+            // Attach click listener to hologram canvas for voice
+            const holoCanvasTrigger = document.getElementById('holoCanvasTrigger');
+            if (holoCanvasTrigger) {
+                holoCanvasTrigger.onclick = () => this.startHoloListening();
+            }
+            
             const statusEl = document.getElementById('holoStatusText');
-            if (statusEl) statusEl.textContent = 'PRONTO — CLICCA IL MICROFONO';
+            if (statusEl) statusEl.textContent = 'CLICCA SULL\'OLOGRAMMA PER PARLARE';
         } else {
             el.style.display = 'none';
             if (mainContent) mainContent.style.visibility = 'visible';
@@ -533,7 +537,6 @@ class JarvisInterface {
                 this._holoVoiceBuffer = transcript;
                 const statusEl = document.getElementById('holoStatusText');
                 if (statusEl) statusEl.textContent = `"${transcript.substring(0, 40)}${transcript.length > 40 ? '...' : ''}"`;
-                // Animate wave bars while receiving
                 setHoloWaveActive(true);
                 if (e.results[0].isFinal) {
                     setTimeout(() => this.sendHologramVoiceMessage(transcript), 100);
@@ -541,24 +544,18 @@ class JarvisInterface {
             };
             
             this.holoRecognition.onstart = () => {
-                const micBtn = document.getElementById('holoMicBtn');
-                if (micBtn) micBtn.classList.add('listening');
                 const statusEl = document.getElementById('holoStatusText');
                 if (statusEl) statusEl.textContent = 'IN ASCOLTO...';
                 setHoloWaveActive(true);
             };
 
             this.holoRecognition.onend = () => {
-                const micBtn = document.getElementById('holoMicBtn');
-                if (micBtn) micBtn.classList.remove('listening');
                 const statusEl = document.getElementById('holoStatusText');
-                if (statusEl && !this._holoProcessing) statusEl.textContent = 'CLICCA IL MICROFONO PER PARLARE';
+                if (statusEl && !this._holoProcessing) statusEl.textContent = 'CLICCA SULL\'OLOGRAMMA PER PARLARE';
                 setHoloWaveActive(false);
             };
             
             this.holoRecognition.onerror = (ev) => {
-                const micBtn = document.getElementById('holoMicBtn');
-                if (micBtn) micBtn.classList.remove('listening');
                 setHoloWaveActive(false);
                 const statusEl = document.getElementById('holoStatusText');
                 if (statusEl) statusEl.textContent = 'ERRORE — RIPROVA';
@@ -573,7 +570,6 @@ class JarvisInterface {
                 this._holoVoiceBuffer = '';
                 this.holoRecognition.start();
             } catch(e) {
-                // if already started, stop then restart
                 try {
                     this.holoRecognition.stop();
                     setTimeout(() => { try { this.holoRecognition.start(); } catch(e2) {} }, 200);
@@ -600,7 +596,7 @@ class JarvisInterface {
         loadDiv.innerHTML = '<span class="holo-typing">● ● ●</span>';
         msgs.appendChild(loadDiv);
         msgs.scrollTop = msgs.scrollHeight;
-        if (statusEl) statusEl.textContent = 'JARVIS STA ELABORANDO...';
+        if (statusEl) statusEl.textContent = 'HARRY STA ELABORANDO...';
         setHoloWaveActive(true);
 
         try {
@@ -625,7 +621,7 @@ class JarvisInterface {
 
             if (this.synthesis && this.hologram) {
                 this.hologram.setSpeaking(true);
-                if (statusEl) statusEl.textContent = 'JARVIS STA PARLANDO...';
+                if (statusEl) statusEl.textContent = 'HARRY STA PARLANDO...';
                 setHoloWaveActive(true);
                 const utt = new SpeechSynthesisUtterance(reply.replace(/[*_`#]/g, '').substring(0, 500));
                 utt.lang  = 'it-IT';
@@ -633,13 +629,13 @@ class JarvisInterface {
                 utt.onend = () => {
                     this.hologram?.setSpeaking(false);
                     setHoloWaveActive(false);
-                    if (statusEl) statusEl.textContent = 'CLICCA IL MICROFONO PER PARLARE';
+                    if (statusEl) statusEl.textContent = 'CLICCA SULL\'OLOGRAMMA PER PARLARE';
                     this._holoProcessing = false;
                 };
                 this.synthesis.speak(utt);
             } else {
                 setHoloWaveActive(false);
-                if (statusEl) statusEl.textContent = 'CLICCA IL MICROFONO PER PARLARE';
+                if (statusEl) statusEl.textContent = 'CLICCA SULL\'OLOGRAMMA PER PARLARE';
                 this._holoProcessing = false;
             }
         } catch {
@@ -649,16 +645,6 @@ class JarvisInterface {
             this._holoProcessing = false;
         }
         msgs.scrollTop = msgs.scrollHeight;
-    }
-
-    // Keep for backward compatibility but now unused in UI
-    async sendHologramMessage() {
-        const input = document.getElementById('holoInput');
-        if (input && input.value.trim()) {
-            const text = input.value.trim();
-            input.value = '';
-            return this.sendHologramVoiceMessage(text);
-        }
     }
 
     async loadConversations() {
@@ -710,13 +696,13 @@ class JarvisInterface {
                 const title    = this.escapeHtml((conv.title || 'Nuova Chat').substring(0, 45));
                 const isActive = this.currentConversationId === conv.id ? 'active' : '';
                 html += `
-                    <div class="conv-item ${isActive}" onclick="window.jarvis.loadConversation(${conv.id})">
+                    <div class="conv-item ${isActive}" onclick="window.harry.loadConversation(${conv.id})">
                         <div class="conv-item-icon">💬</div>
                         <div class="conv-item-text">
                             <div class="conv-item-title">${title}</div>
                             <div class="conv-item-date">${new Date(conv.updated_at).toLocaleDateString('it-IT')}</div>
                         </div>
-                        <button class="conv-item-delete" onclick="event.stopPropagation();window.jarvis.deleteConversation(${conv.id})" title="Elimina">🗑</button>
+                        <button class="conv-item-delete" onclick="event.stopPropagation();window.harry.deleteConversation(${conv.id})" title="Elimina">🗑</button>
                     </div>`;
             });
         });
@@ -732,7 +718,7 @@ class JarvisInterface {
                 this.clearMessages();
                 if (data.messages?.length) {
                     data.messages.forEach(msg => {
-                        this.addMessage(msg.role === 'user' ? 'Tu' : 'JARVIS', msg.content, msg.role, [], false);
+                        this.addMessage(msg.role === 'user' ? 'Tu' : 'HARRY', msg.content, msg.role, [], false);
                     });
                 }
                 this.renderConversationsList();
@@ -769,10 +755,10 @@ class JarvisInterface {
                 
                 const name = this.currentUser?.name || 'Signore';
                 const creatorMessage = this.currentUser?.email === 'antonio.pepice08@gmail.com' 
-                    ? `Buongiorno, ${name}! Sono J.A.R.V.I.S., il suo assistente personale creato da **Antonio Pepice**. Posso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`
-                    : `Buongiorno, ${name}! Sono J.A.R.V.I.S. Posso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`;
+                    ? `Buongiorno, ${name}! Sono H.A.R.R.Y., il suo assistente personale creato da **Antonio Pepice**. Posso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`
+                    : `Buongiorno, ${name}! Sono H.A.R.R.Y. Posso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`;
                 
-                this.addMessage('JARVIS', creatorMessage, 'assistant', [], true);
+                this.addMessage('HARRY', creatorMessage, 'assistant', [], true);
                 await this.loadConversations();
                 this.userInput?.focus();
                 if (window.innerWidth < 992) this.closeSidebar();
@@ -815,11 +801,11 @@ class JarvisInterface {
                 this.speak(data.response);
                 await this.loadConversations();
             } else {
-                this.addMessage('JARVIS', `Errore, Signore: ${data.error}`, 'system', [], true);
+                this.addMessage('HARRY', `Errore, Signore: ${data.error}`, 'system', [], true);
             }
         } catch (e) {
             this.hideTypingIndicator();
-            this.addMessage('JARVIS', `Errore di connessione, Sir: ${e.message}`, 'system', [], true);
+            this.addMessage('HARRY', `Errore di connessione, Sir: ${e.message}`, 'system', [], true);
         }
     }
 
@@ -852,21 +838,28 @@ class JarvisInterface {
                     await this.typeMessage(`📄 **Analisi: ${file.name}**\n\n${data.response}\n\n💡 *Ora puoi farmi domande specifiche su questo file!*`, []);
                     await this.loadConversations();
                 } else {
-                    this.addMessage('JARVIS', `Errore: ${data.error}`, 'system', []);
+                    this.addMessage('HARRY', `Errore: ${data.error}`, 'system', []);
                 }
             } catch (err) {
                 this.hideTypingIndicator();
-                this.addMessage('JARVIS', `Errore: ${err.message}`, 'system', []);
+                this.addMessage('HARRY', `Errore: ${err.message}`, 'system', []);
             }
         };
         
         if (file.type === 'text/plain' || file.name.endsWith('.txt') || file.name.endsWith('.js') || 
             file.name.endsWith('.py') || file.name.endsWith('.html') || file.name.endsWith('.css') ||
-            file.name.endsWith('.json') || file.name.endsWith('.md') || file.name.endsWith('.csv')) {
-            reader.readAsText(file, 'UTF-8');
+            file.name.endsWith('.json') || file.name.endsWith('.md') || file.name.endsWith('.csv') ||
+            file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/jpg') {
+            if (file.type.startsWith('image/')) {
+                // Per immagini, possiamo solo dire che è stata caricata
+                this.addMessage('HARRY', `📸 Ho ricevuto l'immagine **${file.name}**. Posso aiutarti a descriverla o analizzarla?`, 'assistant', [], true);
+                this.hideTypingIndicator();
+            } else {
+                reader.readAsText(file, 'UTF-8');
+            }
         } else {
             this.fileMemory.addFile(file.name, `[File: ${file.name} - Tipo: ${file.type || 'sconosciuto'} - Dimensione: ${(file.size / 1024).toFixed(1)} KB]`, file.type);
-            this.addMessage('JARVIS', `📁 Ho memorizzato il file **${file.name}**. Puoi farmi domande su di esso.`, 'assistant', [], true);
+            this.addMessage('HARRY', `📁 Ho memorizzato il file **${file.name}**. Puoi farmi domande su di esso.`, 'assistant', [], true);
             this.hideTypingIndicator();
         }
     }
@@ -957,7 +950,7 @@ class JarvisInterface {
             d.className = 'message system-message';
             const time  = new Date().toLocaleTimeString('it-IT');
             const msgId = 'msg_' + Date.now();
-            d.innerHTML = `<div class="message-header">JARVIS • ${time}</div><div class="message-content" id="${msgId}"></div>`;
+            d.innerHTML = `<div class="message-header">HARRY • ${time}</div><div class="message-content" id="${msgId}"></div>`;
             this.chatMessages.appendChild(d);
             this.scrollToBottom();
 
@@ -1017,7 +1010,7 @@ class JarvisInterface {
         const ext = extMap[lang] || 'txt';
         const a   = Object.assign(document.createElement('a'), {
             href:     URL.createObjectURL(new Blob([code], { type: 'text/plain' })),
-            download: `jarvis_code.${ext}`
+            download: `harry_code.${ext}`
         });
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
@@ -1028,7 +1021,7 @@ class JarvisInterface {
         <div id="profileModal" class="modal">
           <div class="modal-content">
             <div class="modal-header">
-              <h2>👤 Profilo JARVIS</h2>
+              <h2>👤 Profilo HARRY</h2>
               <button onclick="document.getElementById('profileModal').remove()">✕</button>
             </div>
             <div class="modal-body">
@@ -1051,7 +1044,7 @@ class JarvisInterface {
                 </div>
               </div>
               <div class="profile-actions">
-                <button class="btn-success" onclick="window.jarvis.saveProfile()">💾 Salva</button>
+                <button class="btn-success" onclick="window.harry.saveProfile()">💾 Salva</button>
                 <button class="btn-danger"  onclick="logout()">🚪 Logout</button>
               </div>
               <div id="profileMsg" style="font-size:0.8rem;text-align:center;min-height:20px;margin-top:8px;"></div>
@@ -1082,6 +1075,159 @@ class JarvisInterface {
             const msg = document.getElementById('profileMsg');
             if (msg) msg.innerHTML = `<span style="color:#ff4444">❌ ${e.message}</span>`;
         }
+    }
+
+    // Auth Hologram Voice
+    openAuthHologramVoice() {
+        const overlay = document.getElementById('authHoloOverlay');
+        if (!overlay) return;
+        overlay.style.display = 'flex';
+
+        if (!this._authHoloCanvas) {
+            this._authHoloCanvas = new HarryHologram('authHoloCanvas', 340);
+        }
+        this._authHoloCanvas.start();
+
+        this.initAuthHoloRecognition();
+
+        const statusEl = document.getElementById('authHoloStatusText');
+        if (statusEl) statusEl.textContent = 'CLICCA SULL\'OLOGRAMMA PER PARLARE';
+        
+        // Attach click to auth holo canvas
+        const authCanvasTrigger = document.getElementById('authHoloCanvasTrigger');
+        if (authCanvasTrigger) {
+            authCanvasTrigger.onclick = () => this.toggleAuthHoloListening();
+        }
+    }
+
+    initAuthHoloRecognition() {
+        if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) return;
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        this._authHoloRecognition = new SR();
+        this._authHoloRecognition.lang = 'it-IT';
+        this._authHoloRecognition.continuous = false;
+        this._authHoloRecognition.interimResults = true;
+
+        this._authHoloRecognition.onstart = () => {
+            const statusEl = document.getElementById('authHoloStatusText');
+            if (statusEl) statusEl.textContent = 'IN ASCOLTO...';
+            setAuthWaveActive(true);
+        };
+
+        this._authHoloRecognition.onresult = (e) => {
+            let transcript = '';
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+                transcript += e.results[i][0].transcript;
+            }
+            const statusEl = document.getElementById('authHoloStatusText');
+            if (statusEl) statusEl.textContent = `"${transcript.substring(0, 40)}${transcript.length > 40 ? '...' : ''}"`;
+            if (e.results[0].isFinal) {
+                setTimeout(() => this.sendAuthHoloMessage(transcript), 100);
+            }
+        };
+
+        this._authHoloRecognition.onend = () => {
+            if (!this._authHoloProcessing) {
+                const statusEl = document.getElementById('authHoloStatusText');
+                if (statusEl) statusEl.textContent = 'CLICCA SULL\'OLOGRAMMA PER PARLARE';
+            }
+            setAuthWaveActive(false);
+        };
+
+        this._authHoloRecognition.onerror = () => {
+            setAuthWaveActive(false);
+            const statusEl = document.getElementById('authHoloStatusText');
+            if (statusEl) statusEl.textContent = 'ERRORE — RIPROVA';
+        };
+    }
+
+    toggleAuthHoloListening() {
+        if (!this._authHoloRecognition) this.initAuthHoloRecognition();
+        if (!this._authHoloRecognition) return;
+        try {
+            this._authHoloRecognition.start();
+        } catch(e) {
+            try {
+                this._authHoloRecognition.stop();
+                setTimeout(() => { try { this._authHoloRecognition.start(); } catch(e2) {} }, 250);
+            } catch(e2) {}
+        }
+    }
+
+    async sendAuthHoloMessage(text) {
+        if (!text || !text.trim()) return;
+        this._authHoloProcessing = true;
+
+        const msgs = document.getElementById('authHoloMessages');
+        const statusEl = document.getElementById('authHoloStatusText');
+
+        if (msgs) {
+            const userDiv = document.createElement('div');
+            userDiv.className = 'holo-msg holo-msg-user';
+            userDiv.textContent = text;
+            msgs.appendChild(userDiv);
+            msgs.scrollTop = msgs.scrollHeight;
+
+            const loadDiv = document.createElement('div');
+            loadDiv.className = 'holo-msg holo-msg-jarvis';
+            loadDiv.innerHTML = '<span class="holo-typing">● ● ●</span>';
+            msgs.appendChild(loadDiv);
+            msgs.scrollTop = msgs.scrollHeight;
+
+            if (statusEl) statusEl.textContent = 'HARRY STA ELABORANDO...';
+            setAuthWaveActive(true);
+
+            try {
+                if (!this._authHoloHistory) this._authHoloHistory = [];
+                this._authHoloHistory.push({ role: 'user', content: text });
+
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('harry_token') || ''}` },
+                    body: JSON.stringify({ messages: this._authHoloHistory })
+                });
+                const data = await res.json();
+                const reply = data.success ? data.response : 'Sono H.A.R.R.Y. Accedi per usarmi al massimo, Signore.';
+                this._authHoloHistory.push({ role: 'assistant', content: reply });
+                loadDiv.innerHTML = reply;
+
+                if (window.speechSynthesis) {
+                    if (this._authHoloCanvas) this._authHoloCanvas.setSpeaking(true);
+                    if (statusEl) statusEl.textContent = 'HARRY STA PARLANDO...';
+                    setAuthWaveActive(true);
+                    const utt = new SpeechSynthesisUtterance(reply.replace(/[*_`#]/g, '').substring(0, 500));
+                    utt.lang = 'it-IT';
+                    utt.rate = 0.95;
+                    utt.onend = () => {
+                        if (this._authHoloCanvas) this._authHoloCanvas.setSpeaking(false);
+                        setAuthWaveActive(false);
+                        if (statusEl) statusEl.textContent = 'CLICCA SULL\'OLOGRAMMA PER PARLARE';
+                        this._authHoloProcessing = false;
+                    };
+                    window.speechSynthesis.speak(utt);
+                } else {
+                    setAuthWaveActive(false);
+                    if (statusEl) statusEl.textContent = 'CLICCA SULL\'OLOGRAMMA PER PARLARE';
+                    this._authHoloProcessing = false;
+                }
+            } catch(err) {
+                loadDiv.textContent = 'Errore di connessione.';
+                setAuthWaveActive(false);
+                if (statusEl) statusEl.textContent = 'ERRORE — RIPROVA';
+                this._authHoloProcessing = false;
+            }
+            msgs.scrollTop = msgs.scrollHeight;
+        }
+    }
+
+    closeAuthHologramVoice() {
+        const overlay = document.getElementById('authHoloOverlay');
+        if (overlay) overlay.style.display = 'none';
+        if (this._authHoloCanvas) this._authHoloCanvas.stop();
+        if (this._authHoloRecognition) {
+            try { this._authHoloRecognition.stop(); } catch(e) {}
+        }
+        setAuthWaveActive(false);
     }
 }
 
@@ -1182,8 +1328,8 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
         }
 
         if (data.success) {
-            localStorage.setItem('jarvis_token', data.token);
-            window.jarvis = new JarvisInterface();
+            localStorage.setItem('harry_token', data.token);
+            window.harry = new HarryInterface();
             showAuthMessage('✅ Accesso effettuato!', true);
         } else {
             showAuthMessage(`❌ ${data.error}`);
@@ -1243,8 +1389,8 @@ document.getElementById('registerForm')?.addEventListener('submit', async (e) =>
             
             showAuthMessage('📱 Scansiona il QR con Google Authenticator, poi inserisci il codice a 6 cifre.', true);
         } else if (data.success) {
-            localStorage.setItem('jarvis_token', data.token);
-            window.jarvis = new JarvisInterface();
+            localStorage.setItem('harry_token', data.token);
+            window.harry = new HarryInterface();
             showAuthMessage('✅ Registrazione completata!', true);
         } else {
             showAuthMessage(`❌ ${data.error}`);
@@ -1272,8 +1418,8 @@ async function confirmGoogleAuth() {
         const data = await res.json();
         
         if (data.success) {
-            localStorage.setItem('jarvis_token', data.token);
-            window.jarvis = new JarvisInterface();
+            localStorage.setItem('harry_token', data.token);
+            window.harry = new HarryInterface();
             showAuthMessage('✅ Registrazione completata! Google Auth attivo.', true);
         } else {
             showAuthMessage(`❌ ${data.error}`);
@@ -1366,12 +1512,8 @@ document.getElementById('changePasswordForm')?.addEventListener('submit', async 
     }
 });
 
-function loginWithGitHub() {
-    showAuthMessage('❌ Accesso GitHub non disponibile.');
-}
-
 function logout() {
-    localStorage.removeItem('jarvis_token');
+    localStorage.removeItem('harry_token');
     window.location.reload();
 }
 
@@ -1398,171 +1540,14 @@ function setAuthWaveActive(active) {
     });
 }
 
-/* ══════════════════════════════════════════════════════════
-   AUTH HOLOGRAM VOICE OVERLAY
-══════════════════════════════════════════════════════════ */
-let _authHoloCanvas = null;
-let _authHoloRecognition = null;
-let _authHoloHistory = [];
-let _authHoloProcessing = false;
-
-function openAuthHologramVoice() {
-    const overlay = document.getElementById('authHoloOverlay');
-    if (!overlay) return;
-    overlay.style.display = 'flex';
-
-    // Start hologram canvas
-    if (!_authHoloCanvas) {
-        _authHoloCanvas = new JarvisHologram('authHoloCanvas', 340);
-    }
-    _authHoloCanvas.start();
-
-    // Init speech recognition
-    initAuthHoloRecognition();
-
-    // Status
-    const statusEl = document.getElementById('authHoloStatusText');
-    if (statusEl) statusEl.textContent = 'CLICCA IL MICROFONO PER PARLARE';
-}
-
 function closeAuthHologramVoice() {
-    const overlay = document.getElementById('authHoloOverlay');
-    if (overlay) overlay.style.display = 'none';
-    if (_authHoloCanvas) _authHoloCanvas.stop();
-    if (_authHoloRecognition) {
-        try { _authHoloRecognition.stop(); } catch(e) {}
-    }
-    setAuthWaveActive(false);
-}
-
-function initAuthHoloRecognition() {
-    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) return;
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    _authHoloRecognition = new SR();
-    _authHoloRecognition.lang = 'it-IT';
-    _authHoloRecognition.continuous = false;
-    _authHoloRecognition.interimResults = true;
-
-    _authHoloRecognition.onstart = () => {
-        const micBtn = document.getElementById('authHoloMicBtn');
-        if (micBtn) micBtn.classList.add('listening');
-        const statusEl = document.getElementById('authHoloStatusText');
-        if (statusEl) statusEl.textContent = 'IN ASCOLTO...';
-        setAuthWaveActive(true);
-    };
-
-    _authHoloRecognition.onresult = (e) => {
-        let transcript = '';
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-            transcript += e.results[i][0].transcript;
-        }
-        const statusEl = document.getElementById('authHoloStatusText');
-        if (statusEl) statusEl.textContent = `"${transcript.substring(0, 40)}${transcript.length > 40 ? '...' : ''}"`;
-        if (e.results[0].isFinal) {
-            setTimeout(() => sendAuthHoloMessage(transcript), 100);
-        }
-    };
-
-    _authHoloRecognition.onend = () => {
-        const micBtn = document.getElementById('authHoloMicBtn');
-        if (micBtn) micBtn.classList.remove('listening');
-        if (!_authHoloProcessing) {
-            const statusEl = document.getElementById('authHoloStatusText');
-            if (statusEl) statusEl.textContent = 'CLICCA IL MICROFONO PER PARLARE';
-        }
-        setAuthWaveActive(false);
-    };
-
-    _authHoloRecognition.onerror = () => {
-        const micBtn = document.getElementById('authHoloMicBtn');
-        if (micBtn) micBtn.classList.remove('listening');
-        setAuthWaveActive(false);
-        const statusEl = document.getElementById('authHoloStatusText');
-        if (statusEl) statusEl.textContent = 'ERRORE — RIPROVA';
-    };
-}
-
-function toggleAuthHoloListening() {
-    if (!_authHoloRecognition) initAuthHoloRecognition();
-    if (!_authHoloRecognition) return;
-    try {
-        _authHoloRecognition.start();
-    } catch(e) {
-        try {
-            _authHoloRecognition.stop();
-            setTimeout(() => { try { _authHoloRecognition.start(); } catch(e2) {} }, 250);
-        } catch(e2) {}
-    }
-}
-
-async function sendAuthHoloMessage(text) {
-    if (!text || !text.trim()) return;
-    _authHoloProcessing = true;
-
-    const msgs = document.getElementById('authHoloMessages');
-    const statusEl = document.getElementById('authHoloStatusText');
-
-    if (msgs) {
-        const userDiv = document.createElement('div');
-        userDiv.className = 'holo-msg holo-msg-user';
-        userDiv.textContent = text;
-        msgs.appendChild(userDiv);
-        msgs.scrollTop = msgs.scrollHeight;
-
-        const loadDiv = document.createElement('div');
-        loadDiv.className = 'holo-msg holo-msg-jarvis';
-        loadDiv.innerHTML = '<span class="holo-typing">● ● ●</span>';
-        msgs.appendChild(loadDiv);
-        msgs.scrollTop = msgs.scrollHeight;
-
-        if (statusEl) statusEl.textContent = 'JARVIS STA ELABORANDO...';
-        setAuthWaveActive(true);
-
-        try {
-            _authHoloHistory.push({ role: 'user', content: text });
-
-            const res = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('jarvis_token') || ''}` },
-                body: JSON.stringify({ messages: _authHoloHistory })
-            });
-            const data = await res.json();
-            const reply = data.success ? data.response : 'Sono J.A.R.V.I.S. Accedi per usarmi al massimo, Signore.';
-            _authHoloHistory.push({ role: 'assistant', content: reply });
-            loadDiv.innerHTML = reply;
-
-            // Speak reply
-            if (window.speechSynthesis) {
-                if (_authHoloCanvas) _authHoloCanvas.setSpeaking(true);
-                if (statusEl) statusEl.textContent = 'JARVIS STA PARLANDO...';
-                setAuthWaveActive(true);
-                const utt = new SpeechSynthesisUtterance(reply.replace(/[*_`#]/g, '').substring(0, 500));
-                utt.lang = 'it-IT';
-                utt.rate = 0.95;
-                utt.onend = () => {
-                    if (_authHoloCanvas) _authHoloCanvas.setSpeaking(false);
-                    setAuthWaveActive(false);
-                    if (statusEl) statusEl.textContent = 'CLICCA IL MICROFONO PER PARLARE';
-                    _authHoloProcessing = false;
-                };
-                window.speechSynthesis.speak(utt);
-            } else {
-                setAuthWaveActive(false);
-                if (statusEl) statusEl.textContent = 'CLICCA IL MICROFONO PER PARLARE';
-                _authHoloProcessing = false;
-            }
-        } catch(err) {
-            loadDiv.textContent = 'Errore di connessione.';
-            setAuthWaveActive(false);
-            if (statusEl) statusEl.textContent = 'ERRORE — RIPROVA';
-            _authHoloProcessing = false;
-        }
-        msgs.scrollTop = msgs.scrollHeight;
+    if (window.harry && window.harry.closeAuthHologramVoice) {
+        window.harry.closeAuthHologramVoice();
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    window.jarvis = new JarvisInterface();
+    window.harry = new HarryInterface();
     initTfaInputs('tfaInputs');
     initTfaInputs('recoverTfaInputs');
     initTfaInputs('regGaInputs');
