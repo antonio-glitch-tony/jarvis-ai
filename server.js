@@ -1,12 +1,12 @@
-// server.js - Entry point per H.A.R.R.Y. AI Assistant
+// server.js - Entry point per B.A.R.R.Y. AI Assistant
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const http = require('http');
 
-// Importa il controller HARRY (ex JARVIS)
-const harryController = require('./src/controllers/HarryController');
+// Importa il controller BARRY
+const barryController = require('./src/controllers/BarryController');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -18,43 +18,44 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 /* ═══════════════════════════════════════════════════════════
-   API Routes Chat - H.A.R.R.Y.
+   API Routes Chat - B.A.R.R.Y.
 ═══════════════════════════════════════════════════════════ */
-app.post('/api/chat',                harryController.chat.bind(harryController));
-app.post('/api/chat/history',        harryController.chatWithHistory.bind(harryController));
-app.post('/api/chat/new',            harryController.newChat.bind(harryController));
-app.get('/api/conversations',        harryController.getConversations.bind(harryController));
-app.get('/api/conversations/:id',    harryController.getConversation.bind(harryController));
-app.delete('/api/conversations/:id', harryController.deleteConversation.bind(harryController));
+app.post('/api/chat',                barryController.chat.bind(barryController));
+app.post('/api/chat/history',        barryController.chatWithHistory.bind(barryController));
+app.post('/api/chat/new',            barryController.newChat.bind(barryController));
+app.get('/api/conversations',        barryController.getConversations.bind(barryController));
+app.get('/api/conversations/:id',    barryController.getConversation.bind(barryController));
+app.delete('/api/conversations/:id', barryController.deleteConversation.bind(barryController));
 
 /* ═══════════════════════════════════════════════════════════
    API Routes Speciali
 ═══════════════════════════════════════════════════════════ */
-app.post('/api/translate',           harryController.translate.bind(harryController));
-app.post('/api/summarize',           harryController.summarize.bind(harryController));
-app.post('/api/code',                harryController.generateCode.bind(harryController));
-app.post('/api/debug',               harryController.debugCode.bind(harryController));
-app.post('/api/explain',             harryController.explain.bind(harryController));
-app.post('/api/exercise',            harryController.createExercise.bind(harryController));
-app.get('/api/models',               harryController.getModels.bind(harryController));
-app.post('/api/models/switch',       harryController.switchModel.bind(harryController));
-app.get('/api/system/info',          harryController.getSystemInfo.bind(harryController));
+app.post('/api/translate',           barryController.translate.bind(barryController));
+app.post('/api/summarize',           barryController.summarize.bind(barryController));
+app.post('/api/code',                barryController.generateCode.bind(barryController));
+app.post('/api/debug',               barryController.debugCode.bind(barryController));
+app.post('/api/explain',             barryController.explain.bind(barryController));
+app.post('/api/exercise',            barryController.createExercise.bind(barryController));
+app.post('/api/generate-image',      barryController.generateImage.bind(barryController));  // NUOVA API PER IMMAGINI
+app.get('/api/models',               barryController.getModels.bind(barryController));
+app.post('/api/models/switch',       barryController.switchModel.bind(barryController));
+app.get('/api/system/info',          barryController.getSystemInfo.bind(barryController));
 
 /* ═══════════════════════════════════════════════════════════
    Auth Routes - COMPLETE
 ═══════════════════════════════════════════════════════════ */
-app.post('/api/auth/register-send-code',  harryController.registerSendCode.bind(harryController));
-app.post('/api/auth/register',            harryController.register.bind(harryController));
-app.post('/api/auth/register-confirm-ga', harryController.registerConfirmGA.bind(harryController));
-app.post('/api/auth/verify-google-auth',  harryController.verifyGoogleAuth.bind(harryController));  // ROUTA IMPORTANTE!
-app.post('/api/auth/login',               harryController.login.bind(harryController));
-app.post('/api/auth/recover',             harryController.recover.bind(harryController));
-app.post('/api/auth/reset-password',      harryController.resetPassword.bind(harryController));
-app.post('/api/auth/change-password',     harryController.changePassword.bind(harryController));
-app.get('/api/auth/me',                   harryController.me.bind(harryController));
-app.put('/api/auth/profile',              harryController.updateProfile.bind(harryController));
+app.post('/api/auth/register-send-code',  barryController.registerSendCode.bind(barryController));
+app.post('/api/auth/register',            barryController.register.bind(barryController));
+app.post('/api/auth/register-confirm-ga', barryController.registerConfirmGA.bind(barryController));
+app.post('/api/auth/verify-google-auth',  barryController.verifyGoogleAuth.bind(barryController));
+app.post('/api/auth/login',               barryController.login.bind(barryController));
+app.post('/api/auth/recover',             barryController.recover.bind(barryController));
+app.post('/api/auth/reset-password',      barryController.resetPassword.bind(barryController));
+app.post('/api/auth/change-password',     barryController.changePassword.bind(barryController));
+app.get('/api/auth/me',                   barryController.me.bind(barryController));
+app.put('/api/auth/profile',              barryController.updateProfile.bind(barryController));
 
-// Route di debug per resettare utenti (SOLO PER TEST, rimuovere in produzione)
+// Route di debug
 app.post('/api/auth/debug/reset-users',   (req, res) => {
     if (global._users) {
         global._users = {};
@@ -64,7 +65,6 @@ app.post('/api/auth/debug/reset-users',   (req, res) => {
     }
 });
 
-// Route per vedere utenti registrati (SOLO PER TEST)
 app.get('/api/auth/debug/users', (req, res) => {
     const users = global._users ? Object.keys(global._users).map(email => ({
         email,
@@ -75,10 +75,10 @@ app.get('/api/auth/debug/users', (req, res) => {
 });
 
 /* ═══════════════════════════════════════════════════════════
-   GitHub OAuth — RIMOSSO (non utilizzato)
+   GitHub OAuth — RIMOSSO
 ═══════════════════════════════════════════════════════════ */
-app.get('/api/auth/github',          harryController.githubLogin.bind(harryController));
-app.get('/api/auth/github/callback', harryController.githubCallback.bind(harryController));
+app.get('/api/auth/github',          barryController.githubLogin.bind(barryController));
+app.get('/api/auth/github/callback', barryController.githubCallback.bind(barryController));
 
 /* ═══════════════════════════════════════════════════════════
    Health Check
@@ -86,7 +86,7 @@ app.get('/api/auth/github/callback', harryController.githubCallback.bind(harryCo
 app.get('/health', (req, res) => {
     res.json({ 
         status: 'OK', 
-        service: 'H.A.R.R.Y.', 
+        service: 'B.A.R.R.Y.', 
         version: '4.0.0', 
         platform: 'OpenRouter',
         creator: 'Antonio Pepice',
@@ -109,7 +109,6 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Errore interno del server' });
 });
 
-// 404 handler
 app.use((req, res) => {
     res.status(404).json({ error: 'Route non trovata' });
 });
@@ -121,17 +120,17 @@ const server = http.createServer(app);
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log('═'.repeat(60));
-    console.log('🚀 H.A.R.R.Y. v4.0 - Hyper-Adaptive Responsive Robotic Intelligence');
+    console.log('🚀 B.A.R.R.Y. v4.0 - Brainy Adaptive Responsive Robotic Intelligence');
     console.log('═'.repeat(60));
     console.log(`📡 Server running on http://localhost:${PORT}`);
     console.log(`👨‍💻 Creato da Antonio Pepice`);
     console.log(`🔐 2FA: Attivo con Google Authenticator`);
     console.log(`🆔 Fingerprint: SHA-256`);
     console.log(`🤖 AI Model: OpenRouter`);
+    console.log(`🖼️ Generazione Immagini: Pollinations AI (gratuita)`);
     console.log('═'.repeat(60));
 });
 
-// Gestione chiusura graceful
 process.on('SIGTERM', () => {
     console.log('🛑 SIGTERM ricevuto, chiusura graceful...');
     server.close(() => {

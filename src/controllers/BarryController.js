@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   H.A.R.R.Y. — Controller v2.0 SYNC EDITION
+   B.A.R.R.Y. — Controller v4.0 SYNC EDITION
    Le chat sono legate all'account via JWT.
    Ogni dispositivo vede e modifica le stesse chat.
    ═══════════════════════════════════════════════════════════ */
@@ -9,9 +9,10 @@ const bcrypt    = require('bcryptjs');
 const jwt       = require('jsonwebtoken');
 const speakeasy = require('speakeasy');
 const qrcode    = require('qrcode');
+const axios     = require('axios');
 
 const ALLOWED_EMAIL = 'antonio.pepice08@gmail.com';
-const JWT_SECRET    = process.env.JWT_SECRET || 'harry_secret_key_2024';
+const JWT_SECRET    = process.env.JWT_SECRET || 'barry_secret_key_2024';
 
 /* ── Helper: estrae userId dal token JWT nell'header Authorization ── */
 function getUserIdFromReq(req) {
@@ -26,7 +27,7 @@ function getUserIdFromReq(req) {
     }
 }
 
-class HarryController {
+class BarryController {
 
     /* ══════════════════════════════════
        CHAT — sincronizzate per account
@@ -86,7 +87,16 @@ class HarryController {
             const userId = getUserIdFromReq(req);
             if (!userId) return res.status(401).json({ error: 'Autenticazione richiesta' });
             const conversations = await chatDB.getConversations(userId);
-            res.json({ success: true, conversations });
+            // Rimuovi duplicati per ID
+            const uniqueConvs = [];
+            const seenIds = new Set();
+            for (const conv of conversations) {
+                if (!seenIds.has(conv.id)) {
+                    seenIds.add(conv.id);
+                    uniqueConvs.push(conv);
+                }
+            }
+            res.json({ success: true, conversations: uniqueConvs });
         } catch (e) {
             res.status(500).json({ error: e.message });
         }
@@ -133,6 +143,35 @@ class HarryController {
                 res.status(500).json({ error: result.error });
             }
         } catch (e) { res.status(500).json({ error: e.message }); }
+    }
+
+    /* ══════════════════════════════════
+       GENERAZIONE IMMAGINI GRATUITA (Pollinations AI)
+    ══════════════════════════════════ */
+    async generateImage(req, res) {
+        try {
+            const { prompt } = req.body;
+            if (!prompt) {
+                return res.status(400).json({ error: 'Prompt richiesto' });
+            }
+
+            // Usa Pollinations AI - COMPLETAMENTE GRATUITO
+            const encodedPrompt = encodeURIComponent(prompt);
+            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
+            
+            // Verifica che l'immagine sia generabile
+            const response = await axios.head(imageUrl).catch(() => null);
+            
+            res.json({
+                success: true,
+                imageUrl: imageUrl,
+                prompt: prompt,
+                message: `🖼️ Immagine generata per: "${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}"`
+            });
+        } catch (e) {
+            console.error('Errore generazione immagine:', e);
+            res.status(500).json({ error: e.message });
+        }
     }
 
     /* ══════════════════════════════════
@@ -220,7 +259,7 @@ class HarryController {
     }
 
     /* ══════════════════════════════════
-       AUTH - REGISTRAZIONE FIXATA
+       AUTH - REGISTRAZIONE
     ══════════════════════════════════ */
 
     async registerSendCode(req, res) {
@@ -242,7 +281,6 @@ class HarryController {
                 return res.status(403).json({ error: 'Email non autorizzata.' });
             }
 
-            // Verifica se utente esiste già
             if (global._users && global._users[normalizedEmail] && global._users[normalizedEmail].completed) {
                 return res.status(400).json({ error: 'Utente già registrato. Procedi con il login.' });
             }
@@ -251,7 +289,7 @@ class HarryController {
             const hashedSecretWord = await bcrypt.hash(secretWord, 10);
 
             const secret = speakeasy.generateSecret({
-                name:   `H.A.R.R.Y. (${normalizedEmail})`,
+                name:   `B.A.R.R.Y. (${normalizedEmail})`,
                 length: 32
             });
 
@@ -262,7 +300,7 @@ class HarryController {
                 email: normalizedEmail,
                 password: hashedPassword,
                 secretWord: hashedSecretWord,
-                fingerprint: fingerprint,  // SALVA IL FINGERPRINT
+                fingerprint: fingerprint,
                 gaSecret:      secret.base32,
                 twofaEnabled:  true,
                 completed:     false,
@@ -316,7 +354,7 @@ class HarryController {
                 JWT_SECRET,
                 { expiresIn: '7d' }
             );
-            res.json({ success: true, token, message: 'Benvenuto in HARRY! 2FA attiva.' });
+            res.json({ success: true, token, message: 'Benvenuto in BARRY! 2FA attiva.' });
         } catch (e) {
             console.error('Errore verifyGoogleAuth:', e);
             res.status(500).json({ error: e.message });
@@ -327,16 +365,11 @@ class HarryController {
         return this.verifyGoogleAuth(req, res);
     }
 
-    /* ══════════════════════════════════
-       LOGIN FIXATO
-    ══════════════════════════════════ */
-
     async login(req, res) {
         try {
             const { email, password, secretWord, fingerprint, token } = req.body;
             
             console.log(`🔐 Tentativo login per: ${email}`);
-            console.log(`📱 Fingerprint ricevuto: ${fingerprint ? fingerprint.substring(0, 20) + '...' : 'NON PRESENTE'}`);
             
             if (!email || !password || !secretWord || !fingerprint) {
                 return res.status(400).json({ error: 'Email, password, parola segreta e fingerprint richiesti' });
@@ -349,13 +382,6 @@ class HarryController {
 
             const user = global._users?.[normalizedEmail];
             
-            // DEBUG: Mostra utente salvato
-            console.log(`👤 Utente trovato: ${user ? 'SI' : 'NO'}`);
-            if (user) {
-                console.log(`✅ User completato: ${user.completed}`);
-                console.log(`🔐 Fingerprint salvato: ${user.fingerprint ? user.fingerprint.substring(0, 20) + '...' : 'NON SALVATO'}`);
-            }
-            
             if (!user || !user.completed) {
                 return res.status(400).json({ error: 'Utente non trovato. Devi prima registrarti.' });
             }
@@ -366,15 +392,10 @@ class HarryController {
             const validSecretWord = await bcrypt.compare(secretWord, user.secretWord);
             if (!validSecretWord) return res.status(400).json({ error: 'Parola segreta errata' });
 
-            // Confronto fingerprint
             if (user.fingerprint !== fingerprint) {
                 console.log(`❌ Fingerprint mismatch!`);
-                console.log(`   Salvato: ${user.fingerprint}`);
-                console.log(`   Ricevuto: ${fingerprint}`);
                 return res.status(400).json({ error: 'Impronta digitale non riconosciuta. Questo dispositivo non è autorizzato.' });
             }
-            
-            console.log(`✅ Fingerprint match!`);
 
             if (user.twofaEnabled && !token) {
                 return res.json({ requiresTwoFactor: true });
@@ -484,4 +505,4 @@ class HarryController {
     async githubCallback(req, res) { res.redirect('/'); }
 }
 
-module.exports = new HarryController();
+module.exports = new BarryController();

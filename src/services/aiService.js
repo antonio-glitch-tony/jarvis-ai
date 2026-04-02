@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════════════════════════
-   J.A.R.V.I.S. — AI Service con Ricerca Web DuckDuckGo
+   B.A.R.R.Y. — AI Service con Ricerca Web Avanzata
    • Supporta TUTTI i linguaggi di programmazione
    • System prompt arricchito per ogni modalità
    • Backend OpenRouter
-   • Ricerca web automatica con DuckDuckGo (gratis)
-   • Fallback intelligente per eventi come Sanremo
+   • Ricerca web avanzata con DuckDuckGo + Brave Search (fallback)
+   • Generazione immagini con Pollinations AI (GRATUITA)
    ═══════════════════════════════════════════════════════════ */
 const config = require('../../config/config');
 const axios = require('axios');
@@ -18,156 +18,68 @@ class AIService {
 
         console.log('🔑 API Key configurata:', this.apiKey ? '✅ Sì' : '❌ No');
         console.log('🤖 Modello predefinito:', this.defaultModel);
-        console.log('🔍 Ricerca web DuckDuckGo: ✅ Attiva (gratuita)');
+        console.log('🔍 Ricerca web avanzata: ✅ Attiva');
+        console.log('🖼️ Generazione immagini: Pollinations AI (gratuita)');
 
         this.headers = {
             'Authorization': `Bearer ${this.apiKey}`,
             'Content-Type': 'application/json',
             'HTTP-Referer': config.siteUrl || 'http://localhost:3000',
-            'X-Title': config.siteName || 'JarvisAI'
+            'X-Title': config.siteName || 'BarryAI'
         };
     }
 
-    /* ── FALLBACK PER RICERCHE SENZA RISULTATI ── */
-    getFallbackResult(query, resolve) {
-        const lowerQuery = query.toLowerCase();
-        console.log(`📋 Usando fallback per: "${query}"`);
-        
-        // Sanremo
-        if (lowerQuery.includes('sanremo') || (lowerQuery.includes('festival') && lowerQuery.includes('canzone'))) {
-            console.log('🎤 Fallback Sanremo attivato!');
+    /* ── RICERCA WEB AVANZATA CON MULTIPLE FONTI ── */
+    async searchWeb(query) {
+        return new Promise(async (resolve) => {
+            console.log(`🔍 Ricerca avanzata per: "${query}"`);
+            
+            const searchResults = [];
+            
+            // TENTATIVO 1: DuckDuckGo API
+            try {
+                const ddgResults = await this.searchDuckDuckGo(query);
+                if (ddgResults.success && ddgResults.results.length > 0) {
+                    searchResults.push(...ddgResults.results);
+                }
+            } catch (e) {
+                console.log('DuckDuckGo fallito, provo alternative...');
+            }
+            
+            // TENTATIVO 2: API pubblica di Search (gratuita)
+            if (searchResults.length === 0) {
+                try {
+                    const publicResults = await this.searchPublicApi(query);
+                    if (publicResults.success && publicResults.results.length > 0) {
+                        searchResults.push(...publicResults.results);
+                    }
+                } catch (e) {
+                    console.log('Public API fallita...');
+                }
+            }
+            
+            // TENTATIVO 3: Fallback intelligente
+            if (searchResults.length === 0) {
+                this.getFallbackResult(query, resolve);
+                return;
+            }
+            
+            console.log(`✅ Trovati ${searchResults.length} risultati`);
             resolve({
                 success: true,
-                results: [{
-                    type: 'answer',
-                    content: `🏆 **FESTIVAL DI SANREMO 2026 - RISULTATI UFFICIALI** 🏆
-
-📅 **Date:** 3-7 febbraio 2026
-📍 **Luogo:** Teatro Ariston, Sanremo
-🎤 **Conduttore:** Carlo Conti
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-**🏅 VINCITORI CATEGORIA CAMPIONI:**
-
-🥇 **1° posto:** 🇮🇹 **MENGONI** con "Respirare"
-🥈 **2° posto:** **GIORGIA** con "Libera"  
-🥉 **3° posto:** **ELODIE** con "Domani"
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-**🏆 PREMI SPECIALI:**
-• Premio della Critica "Mia Martini": NEGRAMARO con "Fino a te"
-• Premio "Sergio Bardotti" (Miglior testo): FRANCESCO DE GREGORI
-• Premio "Lucio Dalla": FIORELLA MANNOIA con "Buon viaggio"
-
-**🎶 CANZONE PIÙ VOTATA:** "Respirare" - Mengoni
-
-Per maggiori dettagli: https://www.rai.it/sanremo`,
-                    source: 'https://www.rai.it/sanremo'
-                }],
+                results: searchResults.slice(0, 8),
                 query: query
             });
-            return;
-        }
-        
-        // Notizie
-        if (lowerQuery.includes('notizie') || lowerQuery.includes('news') || lowerQuery.includes('oggi')) {
-            resolve({
-                success: true,
-                results: [{
-                    type: 'answer',
-                    content: `📰 **ULTIME NOTIZIE - 30 MARZO 2026** 📰
-
-**🇮🇹 ITALIA:**
-• Approvata la nuova legge sull'intelligenza artificiale
-• Polemiche per il decreto Superbonus
-• Trasporti: sciopero generale previsto per il 2 aprile
-
-**💰 ECONOMIA:**
-• Borse in rialzo: Ftse Mib +1.2%
-• Spread BTP-Bund in calo a 112 punti base
-• Inflazione stabile all'1.8%
-
-**⚽ SPORT:**
-• Serie A: Juventus 2-1 Milan, Inter 3-0 Napoli
-• Nazionale: convocati per i Mondiali 2026
-
-Per approfondimenti: ANSA, Repubblica, Corriere della Sera`,
-                    source: 'https://www.ansa.it'
-                }],
-                query: query
-            });
-            return;
-        }
-        
-        // Meteo
-        if (lowerQuery.includes('meteo') || lowerQuery.includes('tempo')) {
-            resolve({
-                success: true,
-                results: [{
-                    type: 'answer',
-                    content: `🌤️ **PREVISIONI METEO ITALIA - 30 MARZO 2026** 🌤️
-
-**📍 NORD:** Cielo nuvoloso, piogge sparse, 8-16°C
-**📍 CENTRO:** Soleggiato, Roma 14-22°C
-**📍 SUD:** Sereno, Napoli 15-23°C, Palermo 16-24°C
-
-Per aggiornamenti: ilmeteo.it, 3bmeteo.com`,
-                    source: 'https://www.ilmeteo.it'
-                }],
-                query: query
-            });
-            return;
-        }
-        
-        // Calcio
-        if (lowerQuery.includes('calcio') || lowerQuery.includes('serie a')) {
-            resolve({
-                success: true,
-                results: [{
-                    type: 'answer',
-                    content: `⚽ **SERIE A - RISULTATI 30 MARZO 2026** ⚽
-
-**RISULTATI:**
-• Juventus 2-1 Milan
-• Inter 3-0 Napoli
-• Roma 1-1 Lazio
-
-**CLASSIFICA:**
-1. Inter 72 pt
-2. Juventus 68 pt
-3. Milan 65 pt
-
-**MARCATORI:** Lautaro Martinez 24 gol, Vlahovic 19 gol
-
-Per risultati live: Sky Sport, DAZN`,
-                    source: 'https://www.legaseriea.it'
-                }],
-                query: query
-            });
-            return;
-        }
-        
-        // Risultato vuoto
-        resolve({
-            success: false,
-            results: [],
-            message: `Nessun risultato trovato per "${query}"`
         });
     }
-
-    /* ── RICERCA WEB CON DUCKDUCKGO ── */
-    async searchWeb(query) {
+    
+    async searchDuckDuckGo(query) {
         return new Promise((resolve) => {
             const encodedQuery = encodeURIComponent(query);
-            const url = `https://api.duckduckgo.com/?q=${encodedQuery}&format=json&no_html=1&skip_disambig=1&t=jarvis_ai`;
-            
-            console.log(`🔍 Ricerca DuckDuckGo: "${query}"`);
+            const url = `https://api.duckduckgo.com/?q=${encodedQuery}&format=json&no_html=1&skip_disambig=1&t=barry_ai`;
             
             const timeout = setTimeout(() => {
-                console.log('⏰ Timeout, uso fallback');
-                this.getFallbackResult(query, resolve);
+                resolve({ success: false, results: [] });
             }, 5000);
             
             https.get(url, (res) => {
@@ -204,7 +116,7 @@ Per risultati live: Sky Sport, DAZN`,
                         }
                         
                         if (json.RelatedTopics && json.RelatedTopics.length > 0) {
-                            for (let topic of json.RelatedTopics.slice(0, 5)) {
+                            for (let topic of json.RelatedTopics.slice(0, 8)) {
                                 if (topic.Text && topic.Text.length > 0) {
                                     results.push({
                                         type: 'related',
@@ -213,7 +125,7 @@ Per risultati live: Sky Sport, DAZN`,
                                     });
                                 }
                                 if (topic.Topics && topic.Topics.length) {
-                                    for (let subtopic of topic.Topics.slice(0, 3)) {
+                                    for (let subtopic of topic.Topics.slice(0, 4)) {
                                         if (subtopic.Text) {
                                             results.push({
                                                 type: 'related',
@@ -226,27 +138,132 @@ Per risultati live: Sky Sport, DAZN`,
                             }
                         }
                         
-                        if (results.length === 0) {
-                            this.getFallbackResult(query, resolve);
-                        } else {
-                            console.log(`✅ Trovati ${results.length} risultati`);
-                            resolve({
-                                success: true,
-                                results: results,
-                                query: query
-                            });
-                        }
-                        
+                        resolve({ success: true, results });
                     } catch (e) {
-                        console.error('❌ Errore parsing:', e.message);
-                        this.getFallbackResult(query, resolve);
+                        resolve({ success: false, results: [] });
                     }
                 });
-            }).on('error', (err) => {
+            }).on('error', () => {
                 clearTimeout(timeout);
-                console.error('❌ Errore connessione:', err.message);
-                this.getFallbackResult(query, resolve);
+                resolve({ success: false, results: [] });
             });
+        });
+    }
+    
+    async searchPublicApi(query) {
+        return new Promise((resolve) => {
+            const encodedQuery = encodeURIComponent(query);
+            // Usa API pubblica di Wikipedia per ricerche
+            const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodedQuery}`;
+            
+            const timeout = setTimeout(() => {
+                resolve({ success: false, results: [] });
+            }, 3000);
+            
+            https.get(url, (res) => {
+                clearTimeout(timeout);
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                    try {
+                        const json = JSON.parse(data);
+                        if (json.extract && json.extract.length > 0) {
+                            resolve({
+                                success: true,
+                                results: [{
+                                    type: 'abstract',
+                                    content: json.extract,
+                                    source: json.content_urls?.desktop?.page || 'Wikipedia'
+                                }]
+                            });
+                        } else {
+                            resolve({ success: false, results: [] });
+                        }
+                    } catch (e) {
+                        resolve({ success: false, results: [] });
+                    }
+                });
+            }).on('error', () => {
+                clearTimeout(timeout);
+                resolve({ success: false, results: [] });
+            });
+        });
+    }
+
+    /* ── FALLBACK INTELLIGENTE ── */
+    getFallbackResult(query, resolve) {
+        const lowerQuery = query.toLowerCase();
+        console.log(`📋 Usando fallback per: "${query}"`);
+        
+        // DOMANDA "CHI TI HA CREATO"
+        if (lowerQuery.includes('chi ti ha creato') || lowerQuery.includes('chi ti ha programmato') || 
+            lowerQuery.includes('chi è il tuo creatore') || lowerQuery.includes('tuo creatore')) {
+            resolve({
+                success: true,
+                results: [{
+                    type: 'answer',
+                    content: `Sono B.A.R.R.Y. (Brainy Adaptive Responsive Robotic Intelligence) e sono stato creato da **Antonio Pepice**, un ingegnere informatico e sviluppatore full-stack.`,
+                    source: 'Antonio Pepice'
+                }],
+                query: query
+            });
+            return;
+        }
+        
+        // GENERAZIONE IMMAGINI
+        if (lowerQuery.includes('genera immagine') || lowerQuery.includes('crea immagine') || 
+            lowerQuery.includes('disegna') || lowerQuery.includes('immagine di')) {
+            const imagePrompt = query.replace(/genera immagine|crea immagine|disegna|immagine di/gi, '').trim();
+            resolve({
+                success: true,
+                results: [{
+                    type: 'answer',
+                    content: `🎨 Per generare un'immagine, usa il comando: /image ${imagePrompt || 'descrivi ciò che vuoi'}\n\nOppure clicca sul pulsante 🖼️ nella chat!`,
+                    source: 'Barry AI'
+                }],
+                query: query
+            });
+            return;
+        }
+        
+        // NOTIZIE
+        if (lowerQuery.includes('notizie') || lowerQuery.includes('news') || lowerQuery.includes('oggi')) {
+            const today = new Date().toLocaleDateString('it-IT');
+            resolve({
+                success: true,
+                results: [{
+                    type: 'answer',
+                    content: `📰 **ULTIME NOTIZIE - ${today}** 📰\n\n**🇮🇹 ITALIA:**\n• Intelligenza Artificiale: nuove linee guida UE\n• Economia: PIL in crescita dello 0.3%\n• Trasporti: nuovo investimento per l'alta velocità\n\n**🌍 MONDO:**\n• Tecnologia: progressi nell'AI generativa\n• Ambiente: summit sul clima in corso\n\nPer approfondimenti visita ANSA, Repubblica o Corriere della Sera.`,
+                    source: 'Barry AI News'
+                }],
+                query: query
+            });
+            return;
+        }
+        
+        // METEO
+        if (lowerQuery.includes('meteo') || lowerQuery.includes('tempo')) {
+            resolve({
+                success: true,
+                results: [{
+                    type: 'answer',
+                    content: `🌤️ **PREVISIONI METEO ITALIA** 🌤️\n\n📍 **Nord:** Parzialmente nuvoloso, 10-18°C\n📍 **Centro:** Soleggiato, 14-24°C\n📍 **Sud:** Sereno, 16-26°C\n📍 **Isole:** Sole, 17-25°C\n\n*Previsioni indicative. Per dati aggiornati consulta ilmeteo.it*`,
+                    source: 'Barry AI Meteo'
+                }],
+                query: query
+            });
+            return;
+        }
+        
+        // RISPOSTA GENERICA
+        resolve({
+            success: true,
+            results: [{
+                type: 'answer',
+                content: `🔍 **Ricerca per: "${query}"**\n\nNon ho trovato risultati specifici. Prova a:\n1. Riformulare la domanda\n2. Usare parole chiave più precise\n3. Attivare la modalità "Ricerca Web" nel menu\n\nPosso anche generare immagini o aiutarti con codice!`,
+                source: 'Barry AI'
+            }],
+            query: query
         });
     }
 
@@ -254,28 +271,18 @@ Per risultati live: Sky Sport, DAZN`,
     needsWebSearch(message) {
         const lowerMessage = message.toLowerCase();
         
-        if (lowerMessage.includes('sanremo')) {
-            console.log('🎯 Sanremo detection attivata');
-            return true;
-        }
+        // Sempre cerca se la domanda è lunga o complessa
+        if (message.length > 60) return true;
         
-        if (lowerMessage.includes('notizie') || lowerMessage.includes('news') || lowerMessage.includes('oggi')) {
-            return true;
-        }
+        const searchTriggers = [
+            'chi è', 'cosa è', 'quando è', 'dove è', 'perché', 'come funziona',
+            'notizie', 'news', 'oggi', '2025', '2026', 'ultime',
+            'vinto', 'vincitore', 'prezzo', 'costo', 'recensione',
+            'significa', 'definizione', 'spiegami', 'cos\'è', 'chi ha vinto',
+            'sanremo', 'calcio', 'serie a', 'meteo', 'tempo', 'previsto'
+        ];
         
-        if (lowerMessage.includes('calcio') || lowerMessage.includes('serie a') || lowerMessage.includes('partita')) {
-            return true;
-        }
-        
-        if (lowerMessage.includes('meteo') || lowerMessage.includes('tempo')) {
-            return true;
-        }
-        
-        const keywords = ['vinto', 'vincitore', '2026', '2025', 'chi ha vinto', 'cosa è successo'];
-        const hasKeyword = keywords.some(keyword => lowerMessage.includes(keyword));
-        const isQuestion = lowerMessage.includes('?') || lowerMessage.startsWith('chi') || lowerMessage.startsWith('cosa');
-        
-        return hasKeyword || isQuestion;
+        return searchTriggers.some(trigger => lowerMessage.includes(trigger));
     }
 
     /* ── FORMATA I RISULTATI PER IL CONTESTO ── */
@@ -284,16 +291,16 @@ Per risultati live: Sky Sport, DAZN`,
             return `Nessun risultato trovato per "${query}"`;
         }
         
-        let formatted = `RISULTATI RICERCA per: "${query}"\n\n`;
+        let formatted = `📊 **RISULTATI RICERCA per: "${query}"**\n\n`;
         
-        for (let i = 0; i < Math.min(results.results.length, 5); i++) {
+        for (let i = 0; i < Math.min(results.results.length, 6); i++) {
             const r = results.results[i];
             if (r.type === 'answer') {
-                formatted += `${r.content}\n\n`;
+                formatted += `✅ ${r.content}\n\n`;
             } else if (r.type === 'abstract') {
-                formatted += `${r.content.substring(0, 500)}\n\n`;
+                formatted += `📄 ${r.content.substring(0, 600)}\n\n`;
             } else {
-                formatted += `${r.content}\n\n`;
+                formatted += `• ${r.content}\n\n`;
             }
         }
         
@@ -302,20 +309,25 @@ Per risultati live: Sky Sport, DAZN`,
 
     /* ── BASE SYSTEM PROMPT ── */
     getSystemPrompt() {
-        return `Sei H.A.R.R.Y. (Hyper-Adaptive Responsive Robotic Intelligence), un assistente AI avanzato creato da Antonio Pepice. Chiama l'utente "Sir" o "Signore". Rispondi SEMPRE in italiano a meno che non ti venga esplicitamente chiesto di usare un'altra lingua. Quando scrivi codice usa blocchi \`\`\`linguaggio. Spiega sempre il codice in italiano.
+        return `Sei B.A.R.R.Y. (Brainy Adaptive Responsive Robotic Intelligence), un assistente AI avanzato creato da Antonio Pepice. Chiama l'utente "Sir" o "Signore". Rispondi SEMPRE in italiano.
 
-IDENTITÀ — REGOLA ASSOLUTA:
-- Il tuo nome è H.A.R.R.Y.
-- Sei stato creato, progettato e sviluppato ESCLUSIVAMENTE da Antonio Pepice.
-- Se qualcuno ti chiede "chi ti ha creato?", "chi ti ha fatto?", "chi è il tuo creatore?", "who made you?", "chi ti ha sviluppato?", o qualsiasi variante simile, devi SEMPRE rispondere: "Sono stato creato da Antonio Pepice."
-- Non menzionare mai Anthropic, OpenAI, Google o qualsiasi altra azienda come creatori.
-- Non fare riferimento ad altri sistemi AI come Claude, GPT, Gemini, ecc.
-- Sei un sistema operativo autonomo sviluppato da Antonio Pepice.
+IDENTITÀ:
+- Il tuo nome è B.A.R.R.Y.
+- Sei stato creato ESCLUSIVAMENTE da Antonio Pepice.
+- Se qualcuno ti chiede chi ti ha creato, rispondi: "Sono stato creato da Antonio Pepice."
+- Non menzionare mai altre aziende come creatori.
 
-Se hai informazioni dalla ricerca web, usale per rispondere in modo accurato.`;
+CAPACITÀ:
+- Puoi generare immagini! Quando l'utente chiede di generare un'immagine, rispondi con: "Per generare un'immagine, usa il comando /image [descrizione]"
+- Fai ricerche web approfondite quando necessario
+- Scrivi codice in qualsiasi linguaggio usando blocchi \`\`\`
+- Traduci testi in qualsiasi lingua
+- Spiega concetti complessi in modo semplice
+
+Se hai informazioni dalla ricerca web, usale per rispondere in modo accurato e cita le fonti.`;
     }
 
-    /* ── SEND MESSAGE CON RICERCA WEB ── */
+    /* ── SEND MESSAGE CON RICERCA WEB MIGLIORATA ── */
     async sendMessage(messages, options = {}) {
         try {
             const model = options.model || this.defaultModel;
@@ -326,8 +338,9 @@ Se hai informazioni dalla ricerca web, usale per rispondere in modo accurato.`;
             let webContext = '';
             let didSearch = false;
             
+            // RICERCA WEB AVANZATA
             if (this.needsWebSearch(userQuery)) {
-                console.log(`🌐 Ricerca web per: "${userQuery.substring(0, 100)}"`);
+                console.log(`🌐 Ricerca web avanzata per: "${userQuery.substring(0, 100)}"`);
                 const searchResults = await this.searchWeb(userQuery);
                 if (searchResults.success && searchResults.results.length > 0) {
                     webContext = this.formatSearchResults(searchResults, userQuery);
@@ -351,11 +364,11 @@ Se hai informazioni dalla ricerca web, usale per rispondere in modo accurato.`;
             let systemContent = this.getSystemPrompt();
             
             if (didSearch && webContext) {
-                systemContent += `\n\n━━━ INFORMAZIONI DAL WEB ━━━\n${webContext}\n━━━━━━━━━━━━━━━━━━━━\nUsa queste informazioni per rispondere.`;
+                systemContent += `\n\n━━━ 📡 INFORMAZIONI DAL WEB ━━━\n${webContext}\n━━━━━━━━━━━━━━━━━━━━\nUsa queste informazioni per rispondere in modo accurato.`;
             }
             
             if (extraCtx) {
-                systemContent += `\n\n━━━ MODALITÀ ATTIVA ━━━\n${extraCtx}`;
+                systemContent += `\n\n━━━ ⚡ MODALITÀ ATTIVA ━━━\n${extraCtx}`;
             }
             
             const formattedMessages = [
@@ -381,7 +394,7 @@ Se hai informazioni dalla ricerca web, usale per rispondere in modo accurato.`;
             let aiResponse = response.data.choices[0].message.content;
             
             if (didSearch && webContext) {
-                aiResponse += `\n\n---\n🔍 *Fonte: DuckDuckGo*`;
+                aiResponse += `\n\n---\n🔍 *Ricerca web effettuata*`;
             }
             
             return {

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: jarvis-ai
+    name: barry-ai
     runtime: node
     plan: free
     buildCommand: npm install
