@@ -36,10 +36,11 @@ app.post('/api/code',                barryController.generateCode.bind(barryCont
 app.post('/api/debug',               barryController.debugCode.bind(barryController));
 app.post('/api/explain',             barryController.explain.bind(barryController));
 app.post('/api/exercise',            barryController.createExercise.bind(barryController));
-app.post('/api/generate-image', barryController.generateImage.bind(barryController));
+app.post('/api/generate-image',      barryController.generateImage.bind(barryController));
 app.get('/api/models',               barryController.getModels.bind(barryController));
 app.post('/api/models/switch',       barryController.switchModel.bind(barryController));
 app.get('/api/system/info',          barryController.getSystemInfo.bind(barryController));
+app.get('/api/weather',              barryController.getWeather.bind(barryController));  // NUOVA ROTTA METEO
 
 /* ═══════════════════════════════════════════════════════════
    Auth Routes - COMPLETE CON CRITTOGRAFIA
@@ -71,9 +72,9 @@ app.get('/api/auth/debug/users', (req, res) => {
     const users = global._users ? Object.keys(global._users).map(email => ({
         email,
         completed: global._users[email].completed,
-        hasFingerprint: !!global._users[email].fingerprint,
+        hasFingerprint: !!global._users[email].fingerprintHash,
         emailVerified: global._users[email].emailVerified || false,
-        encrypted: !!global._users[email].encryptedData
+        encrypted: !!global._users[email].encryptedName
     })) : [];
     res.json({ success: true, users });
 });

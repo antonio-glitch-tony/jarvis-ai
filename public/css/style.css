@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   H.A.R.R.Y. — Style Sheet v5.0 NEXUS EDITION
+   B.A.R.R.Y. — Style Sheet v5.1 COMPLETELY FIXED
    Author: Antonio Pepice
    Aesthetic: Refined Dark Futurism — Syne + IBM Plex Mono
    ═══════════════════════════════════════════════════════════ */
@@ -1080,13 +1080,18 @@ body::before {
     font-size: 0.8rem;
 }
 .message-content pre {
-    background: rgba(0,0,0,0.5);
-    border: 1px solid rgba(0,232,255,0.1);
-    border-radius: 7px;
-    padding: 12px;
+    background: rgba(0,0,0,0.6) !important;
+    border: 1px solid rgba(0,232,255,0.15);
+    border-radius: 8px;
+    padding: 14px;
     overflow-x: auto;
-    margin: 8px 0;
-    font-size: 0.78rem;
+    margin: 10px 0;
+}
+.message-content pre code {
+    background: transparent !important;
+    color: #00e8ff;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
 }
 
 /* Typing indicator */
@@ -1212,10 +1217,10 @@ textarea#userInput {
     font-family: var(--font-mono);
     font-size: 0.85rem;
     resize: none;
-    outline: none;
     min-height: 42px;
     max-height: 160px;
     overflow-y: auto;
+    outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
     line-height: 1.5;
 }
@@ -1242,7 +1247,7 @@ textarea#userInput::placeholder { color: rgba(0,232,255,0.2); }
 #sendBtn:hover .button-glow { opacity: 1; }
 
 /* ══════════════════════════════════════════════════════════
-   CAPABILITIES DROPDOWN
+   CAPABILITIES DROPDOWN - VERTICALE A TENDINA
 ══════════════════════════════════════════════════════════ */
 .capabilities-dropdown-container {
     padding: 0 0 8px;
@@ -1282,8 +1287,10 @@ textarea#userInput::placeholder { color: rgba(0,232,255,0.2); }
 
 .dropdown-menu {
     position: absolute;
-    bottom: calc(100% + 6px);
-    left: 0; right: 0;
+    top: 100%;
+    bottom: auto;
+    left: 0;
+    right: 0;
     background: rgba(1,5,20,0.98);
     border: 1px solid rgba(0,232,255,0.14);
     border-radius: 10px;
@@ -1291,14 +1298,16 @@ textarea#userInput::placeholder { color: rgba(0,232,255,0.2); }
     display: none;
     max-height: 440px;
     overflow-y: auto;
-    z-index: 50;
+    z-index: 100;
     backdrop-filter: blur(20px);
-    box-shadow: 0 -20px 60px rgba(0,20,80,0.6), 0 0 0 1px rgba(0,232,255,0.05);
-    columns: 2;
-    gap: 12px;
+    box-shadow: 0 20px 60px rgba(0,20,80,0.6);
+    columns: 1 !important;
 }
-.capabilities-dropdown.open .dropdown-menu { display: block; animation: dropIn 0.2s ease; }
-@keyframes dropIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+.capabilities-dropdown.open .dropdown-menu {
+    display: block;
+    animation: dropIn 0.2s ease;
+}
+@keyframes dropIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:none} }
 
 .dropdown-group {
     break-inside: avoid;
@@ -1757,46 +1766,44 @@ textarea#userInput::placeholder { color: rgba(0,232,255,0.2); }
 }
 .btn-danger:hover { background: rgba(200,40,40,0.22); box-shadow: 0 0 14px rgba(200,40,40,0.2); }
 
+/* Code download button */
+.code-download-btn {
+    background: rgba(0,232,255,0.08);
+    border: 1px solid rgba(0,232,255,0.2);
+    border-radius: 5px;
+    color: #00e8ff;
+    padding: 4px 12px;
+    font-size: 0.65rem;
+    font-family: var(--font-ui);
+    cursor: pointer;
+    margin-top: 5px;
+    transition: all 0.2s;
+}
+.code-download-btn:hover {
+    background: rgba(0,232,255,0.15);
+    border-color: rgba(0,232,255,0.35);
+}
+
+/* Animazione per il caricamento delle immagini */
+img[src*="pollinations"] {
+    animation: fadeIn 0.5s ease;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Stile per le anteprime delle immagini nella chat */
+.message-content img {
+    max-width: 100%;
+    border-radius: 8px;
+    border: 1px solid rgba(0,232,255,0.2);
+    background: #0a0a0a;
+}
+
 /* ══════════════════════════════════════════════════════════
-   RESPONSIVE
-══════════════════════════════════════════════════════════ */
-@media (min-width: 992px) {
-    .sidebar { transform: translateX(0); }
-    .main-content { margin-left: var(--sidebar-w); }
-    .hamburger-btn { display: none; }
-    .sidebar-overlay { display: none !important; }
-}
-@media (max-width: 768px) {
-    .auth-container { flex-direction: column; gap: 28px; }
-    .jarvis-hologram { transform: scale(0.72); transform-origin: top center; }
-    .hologram-ring { display: none; }
-    .chat-messages { height: 340px; }
-    .holo-body { flex-direction: column; gap: 20px; padding: 16px; }
-    .holo-canvas-wrap { width: 220px; height: 220px; }
-    .holo-canvas-wrap canvas { width: 220px !important; height: 220px !important; }
-    .hr1 { width: 234px; height: 234px; }
-    .hr2 { width: 250px; height: 250px; }
-    .hr3 { width: 266px; height: 266px; }
-    .hr4 { display: none; }
-    .holo-chat-panel { max-width: 100%; height: 260px; }
-    .container { padding: 12px; }
-    .tfa-digit { width: 36px !important; height: 42px; font-size: 1.1rem !important; }
-    .dropdown-menu { max-height: 380px; columns: 1; }
-    .glow-text { font-size: 1.9rem; letter-spacing: 7px; }
-    .auth-holo-body { flex-direction: column; }
-    .auth-holo-canvas-wrap { width: 240px; height: 240px; }
-    .auth-holo-canvas-wrap canvas { width: 240px !important; height: 240px !important; }
-}
-@media (max-width: 480px) {
-    .auth-box { padding: 22px 16px; }
-    .header-buttons { gap: 5px; }
-    .holo-btn, .profile-btn, .logout-btn { padding: 7px 10px; font-size: 0.56rem; }
-    .twofa-inputs { gap: 5px; }
-    .tfa-digit { width: 32px !important; height: 38px; font-size: 1rem !important; }
-}
-/* ═══════════════════════════════════════════
    MESSAGGI — header senza orario
-═══════════════════════════════════════════ */
+══════════════════════════════════════════════════════════ */
 .message-header {
     font-size: 0.65rem;
     font-family: var(--font-ui);
@@ -1829,9 +1836,9 @@ textarea#userInput::placeholder { color: rgba(0,232,255,0.2); }
     word-break: break-word;
 }
 
-/* ═══════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════
    SIDEBAR — conv-item (classi usate dal JS)
-═══════════════════════════════════════════ */
+══════════════════════════════════════════════════════════ */
 .sidebar-section-label {
     font-size: 0.6rem;
     font-family: var(--font-ui);
@@ -1898,3 +1905,41 @@ textarea#userInput::placeholder { color: rgba(0,232,255,0.2); }
 }
 .conv-item:hover .conv-item-delete { color: rgba(255,80,80,0.4); }
 .conv-item-delete:hover { background: rgba(255,50,50,0.1); color: rgba(255,80,80,0.9) !important; }
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════════ */
+@media (min-width: 992px) {
+    .sidebar { transform: translateX(0); }
+    .main-content { margin-left: var(--sidebar-w); }
+    .hamburger-btn { display: none; }
+    .sidebar-overlay { display: none !important; }
+}
+@media (max-width: 768px) {
+    .auth-container { flex-direction: column; gap: 28px; }
+    .jarvis-hologram { transform: scale(0.72); transform-origin: top center; }
+    .hologram-ring { display: none; }
+    .chat-messages { height: 340px; }
+    .holo-body { flex-direction: column; gap: 20px; padding: 16px; }
+    .holo-canvas-wrap { width: 220px; height: 220px; }
+    .holo-canvas-wrap canvas { width: 220px !important; height: 220px !important; }
+    .hr1 { width: 234px; height: 234px; }
+    .hr2 { width: 250px; height: 250px; }
+    .hr3 { width: 266px; height: 266px; }
+    .hr4 { display: none; }
+    .holo-chat-panel { max-width: 100%; height: 260px; }
+    .container { padding: 12px; }
+    .tfa-digit { width: 36px !important; height: 42px; font-size: 1.1rem !important; }
+    .dropdown-menu { max-height: 380px; columns: 1; }
+    .glow-text { font-size: 1.9rem; letter-spacing: 7px; }
+    .auth-holo-body { flex-direction: column; }
+    .auth-holo-canvas-wrap { width: 240px; height: 240px; }
+    .auth-holo-canvas-wrap canvas { width: 240px !important; height: 240px !important; }
+}
+@media (max-width: 480px) {
+    .auth-box { padding: 22px 16px; }
+    .header-buttons { gap: 5px; }
+    .holo-btn, .profile-btn, .logout-btn { padding: 7px 10px; font-size: 0.56rem; }
+    .twofa-inputs { gap: 5px; }
+    .tfa-digit { width: 32px !important; height: 38px; font-size: 1rem !important; }
+}

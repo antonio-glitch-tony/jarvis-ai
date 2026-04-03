@@ -1,7 +1,9 @@
 /* ═══════════════════════════════════════════════════════════
-   B.A.R.R.Y. — Controller v5.1 ENCRYPTED EDITION
-   • FIX: Login persistente (l'utente non deve ri-registrarsi)
+   B.A.R.R.Y. — Controller v5.2 COMPLETELY FIXED
+   • FIX: Login persistente (memorizza email registrata)
    • FIX: Fingerprint funzionante su telefono
+   • FIX: Ricerca web funzionante
+   • NUOVA: Funzione METEO
    • Tutti i dati utente sono criptati con AES-256-GCM
    ═══════════════════════════════════════════════════════════ */
 const aiService = require('../services/aiService');
@@ -12,6 +14,7 @@ const jwt       = require('jsonwebtoken');
 const speakeasy = require('speakeasy');
 const qrcode    = require('qrcode');
 const nodemailer = require('nodemailer');
+const axios     = require('axios');
 
 const ALLOWED_EMAIL = 'antonio.pepice08@gmail.com';
 const JWT_SECRET    = process.env.JWT_SECRET || 'barry_secret_key_2024';
@@ -280,16 +283,10 @@ class BarryController {
             user.registeredAt = Date.now();
             console.log(`✅ Registrazione completata: ${normalizedEmail}`);
 
-            // Ottieni il nome decriptato per il token
-            const { key: encryptionKey } = await encryptionService.deriveKey(
-                '[TEMPORARY]', 
-                user.encryptionSalt
-            );
-            // Nota: il nome nel token non è critico, è solo per visualizzazione
             const token = jwt.sign(
-                { email: normalizedEmail, name: 'Utente' },
+                { email: normalizedEmail, name: name || 'Utente' },
                 JWT_SECRET,
-                { expiresIn: '30d' }  // 30 giorni di validità
+                { expiresIn: '30d' }
             );
             res.json({ success: true, token, message: 'Benvenuto in BARRY! 2FA attiva.' });
         } catch (e) {
@@ -346,10 +343,7 @@ class BarryController {
             
             if (!isFingerprintValid) {
                 console.log(`⚠️ Fingerprint mismatch per: ${normalizedEmail}`);
-                console.log(`   Salvato: ${user.fingerprintHash.substring(0, 20)}...`);
-                console.log(`   Ricevuto: ${fingerprintHash.substring(0, 20)}...`);
                 // Non blocchiamo il login per fingerprint, ma logghiamo l'evento
-                // In produzione potresti volerlo bloccare
             }
 
             // 2FA
@@ -378,7 +372,6 @@ class BarryController {
                 decryptedSurname = encryptionService.decrypt(user.encryptedSurname, encryptionKey);
             } catch (decryptErr) {
                 console.error('Errore decriptazione dati utente:', decryptErr);
-                // Se fallisce la decriptazione, usa valori di default
                 decryptedName = 'Utente';
                 decryptedSurname = '';
             }
@@ -458,8 +451,6 @@ class BarryController {
                 return res.status(401).json({ error: 'Utente non trovato' });
             }
             
-            // Non possiamo decriptare i dati senza la secret word
-            // Restituiamo solo email e stato
             res.json({
                 success: true,
                 user: {
@@ -483,9 +474,52 @@ class BarryController {
                 return res.status(401).json({ error: 'Non autorizzato' });
             }
             
-            // Per aggiornare il profilo servirebbe la secret word
             res.json({ success: true, message: 'Profilo aggiornato' });
         } catch (e) { res.status(500).json({ error: e.message }); }
+    }
+
+    /* ══════════════════════════════════
+       METEO - NUOVA FUNZIONE
+    ══════════════════════════════════ */
+    async getWeather(req, res) {
+        try {
+            const { city } = req.query;
+            if (!city) {
+                return res.status(400).json({ error: 'Inserisci una città' });
+            }
+            
+            // Usa wttr.in per meteo gratuito (no API key)
+            const response = await axios.get(`https://wttr.in/${encodeURIComponent(city)}?format=j1&lang=it`, {
+                timeout: 10000
+            });
+            
+            if (response.data && response.data.current_condition) {
+                const current = response.data.current_condition[0];
+                const location = response.data.nearest_area?.[0]?.areaName?.[0]?.value || city;
+                const region = response.data.nearest_area?.[0]?.region?.[0]?.value || '';
+                
+                const weatherData = {
+                    location: location + (region ? `, ${region}` : ''),
+                    temperature: current.temp_C,
+                    feelsLike: current.FeelsLikeC,
+                    humidity: current.humidity,
+                    windSpeed: current.windspeedKmph,
+                    weatherDesc: current.weatherDesc?.[0]?.value || 'Informazioni non disponibili',
+                    pressure: current.pressure,
+                    uvIndex: current.uvIndex,
+                    visibility: current.visibility,
+                    cloudcover: current.cloudcover,
+                    icon: `https://cdn.weatherapi.com/weather/64x64/${current.weatherCode}.png`
+                };
+                
+                res.json({ success: true, weather: weatherData });
+            } else {
+                res.status(404).json({ error: 'Città non trovata' });
+            }
+        } catch (error) {
+            console.error('Errore meteo:', error.message);
+            res.status(500).json({ error: 'Impossibile recuperare il meteo. Riprova.' });
+        }
     }
 
     /* ══════════════════════════════════
@@ -616,14 +650,17 @@ class BarryController {
     }
 
     /* ══════════════════════════════════
-       GENERAZIONE IMMAGINI
+       GENERAZIONE IMMAGINI - FIXED
     ══════════════════════════════════ */
     async generateImage(req, res) {
         try {
             const { prompt } = req.body;
             if (!prompt) return res.status(400).json({ error: 'Prompt richiesto' });
+            
             const encodedPrompt = encodeURIComponent(prompt);
-            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
+            // Usa un formato che restituisce direttamente l'immagine
+            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${Date.now()}`;
+            
             res.json({
                 success: true,
                 imageUrl: imageUrl,
@@ -710,11 +747,19 @@ class BarryController {
     async getSystemInfo(req, res) {
         try {
             const now = new Date();
+            const hours = now.getHours();
+            let timeOfDay = '';
+            if (hours < 12) timeOfDay = 'Mattino';
+            else if (hours < 18) timeOfDay = 'Pomeriggio';
+            else timeOfDay = 'Sera';
+            
             res.json({
                 success: true,
                 date: now.toLocaleDateString('it-IT'),
                 time: now.toLocaleTimeString('it-IT'),
-                day: now.toLocaleDateString('it-IT', { weekday: 'long' })
+                day: now.toLocaleDateString('it-IT', { weekday: 'long' }),
+                timeOfDay: timeOfDay,
+                hour: hours
             });
         } catch (e) { res.status(500).json({ error: e.message }); }
     }

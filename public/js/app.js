@@ -1,5 +1,11 @@
 /* ═══════════════════════════════════════════════════════════
-   B.A.R.R.Y. — Frontend App v5.1 FIXED
+   B.A.R.R.Y. — Frontend App v5.2 COMPLETELY FIXED
+   • FIX: Login persistente
+   • FIX: Orario chat con Mattino/Pomeriggio/Sera
+   • FIX: Immagini /image mostrate correttamente
+   • FIX: Ricerca web funzionante
+   • NUOVA: Funzione METEO (/meteo città)
+   • NUOVA: Supporto immagini incollate
    Autore: Antonio Pepice
    ═══════════════════════════════════════════════════════════ */
 
@@ -286,6 +292,30 @@ class BarryInterface {
         this._startAuthHologram();
     }
 
+    /* ── OTTIENE SALUTO BASATO SULL'ORARIO ── */
+    getTimeBasedGreeting() {
+        const now = new Date();
+        const hours = now.getHours();
+        let timeOfDay = '';
+        let greeting = '';
+        
+        if (hours < 12) {
+            timeOfDay = 'Mattino';
+            greeting = 'Buongiorno';
+        } else if (hours < 18) {
+            timeOfDay = 'Pomeriggio';
+            greeting = 'Buon pomeriggio';
+        } else {
+            timeOfDay = 'Sera';
+            greeting = 'Buonasera';
+        }
+        
+        const formattedTime = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+        const formattedDate = now.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+        
+        return { greeting, timeOfDay, formattedTime, formattedDate };
+    }
+
     async verifyAuth() {
         try {
             const res  = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${this.token}` } });
@@ -348,7 +378,7 @@ class BarryInterface {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // CAPABILITIES DROPDOWN - FIX PER TOUCH (TELEFONO)
+    // CAPABILITIES DROPDOWN - FIX PER TOUCH (TELEFONO) - VERTICALE
     // ═══════════════════════════════════════════════════════════
     initCapabilitiesDropdown() {
         const dropdown = document.getElementById('capabilitiesDropdown');
@@ -356,7 +386,6 @@ class BarryInterface {
         
         const btn = dropdown.querySelector('.dropdown-btn');
         if (btn) {
-            // Supporto sia click che touch
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -369,7 +398,6 @@ class BarryInterface {
             });
         }
         
-        // Chiudi quando si clicca fuori
         const closeDropdown = (e) => {
             if (!dropdown.contains(e.target)) {
                 dropdown.classList.remove('open');
@@ -378,7 +406,6 @@ class BarryInterface {
         document.addEventListener('click', closeDropdown);
         document.addEventListener('touchstart', closeDropdown);
         
-        // Seleziona modalità
         const items = dropdown.querySelectorAll('.dropdown-item');
         items.forEach(item => {
             const selectMode = (e) => {
@@ -477,6 +504,52 @@ class BarryInterface {
         
         if (this.userInput) {
             this.userInput.placeholder = 'Scrivi o parla con BARRY...';
+        }
+    }
+
+    /* ── METEO ── */
+    async getWeather(city) {
+        if (!city || city.trim() === '') {
+            this.addMessage('BARRY', 'Per conoscere il meteo, scrivi: **meteo [nome città]**\n\nEsempio: `meteo Roma`\n\nOppure usa il comando `/meteo Roma`', 'assistant', [], true);
+            return;
+        }
+        
+        this.showTypingIndicator();
+        try {
+            const res = await fetch(`/api/weather?city=${encodeURIComponent(city)}`, {
+                headers: { 'Authorization': `Bearer ${this.token}` }
+            });
+            const data = await res.json();
+            this.hideTypingIndicator();
+            
+            if (data.success && data.weather) {
+                const w = data.weather;
+                const weatherHtml = `
+                    <div style="background: rgba(0,232,255,0.05); border: 1px solid rgba(0,232,255,0.15); border-radius: 12px; padding: 15px; margin: 10px 0;">
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                            <div style="font-size: 48px;">🌤️</div>
+                            <div>
+                                <div style="font-size: 24px; font-weight: bold;">${w.temperature}°C</div>
+                                <div style="color: rgba(0,232,255,0.7);">${w.weatherDesc}</div>
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 12px;">
+                            <div>📍 ${w.location}</div>
+                            <div>💨 Vento: ${w.windSpeed} km/h</div>
+                            <div>💧 Umidità: ${w.humidity}%</div>
+                            <div>🌡️ Percepita: ${w.feelsLike}°C</div>
+                            <div>☁️ Nuvolosità: ${w.cloudcover}%</div>
+                            <div>👁️ Visibilità: ${w.visibility} km</div>
+                        </div>
+                    </div>
+                `;
+                this.addMessage('BARRY', weatherHtml, 'assistant', [], true);
+            } else {
+                this.addMessage('BARRY', `❌ Non ho trovato informazioni meteo per "${city}". Riprova con un'altra città.`, 'assistant', [], true);
+            }
+        } catch (err) {
+            this.hideTypingIndicator();
+            this.addMessage('BARRY', `❌ Errore nel recupero del meteo: ${err.message}`, 'assistant', [], true);
         }
     }
 
@@ -757,7 +830,7 @@ class BarryInterface {
 
     async createNewChat() {
         try {
-            const res  = await fetch('/api/chat/new', {
+            const res = await fetch('/api/chat/new', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
                 body: JSON.stringify({})
@@ -769,7 +842,9 @@ class BarryInterface {
                 this.clearMode();
                 this.fileMemory.clear();
                 
-                const creatorMessage = `Buongiorno! Sono B.A.R.R.Y., il suo assistente personale creato da **Antonio Pepice**. Posso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`;
+                const { greeting, timeOfDay, formattedTime, formattedDate } = this.getTimeBasedGreeting();
+                
+                const creatorMessage = `${greeting}, Signore! Sono B.A.R.R.Y., il suo assistente personale creato da **Antonio Pepice**. Oggi è ${formattedDate}, sono le ${formattedTime} (${timeOfDay}).\n\nPosso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`;
                 
                 this.addMessage('BARRY', creatorMessage, 'assistant', [], true);
                 await this.loadConversations();
@@ -794,7 +869,11 @@ class BarryInterface {
             this.hideTypingIndicator();
             
             if (data.success && data.imageUrl) {
-                const imageHtml = `<div style="margin: 10px 0;"><img src="${data.imageUrl}" alt="${this.escapeHtml(prompt)}" style="max-width: 100%; border-radius: 8px; border: 1px solid rgba(0,232,255,0.3);" /><br><span style="font-size: 0.7rem; color: rgba(0,232,255,0.5);">🎨 Immagine generata per: "${this.escapeHtml(prompt)}"</span></div>`;
+                const imageHtml = `<div style="margin: 10px 0;">
+                    <img src="${data.imageUrl}" alt="${this.escapeHtml(prompt)}" style="max-width: 100%; border-radius: 8px; border: 1px solid rgba(0,232,255,0.3); background: #0a0a0a;" 
+                         onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'200\\' viewBox=\\'0 0 200 200\\'%3E%3Crect width=\\'200\\' height=\\'200\\' fill=\\'%230a0a0a\\'/%3E%3Ctext x=\\'100\\' y=\\'100\\' text-anchor=\\'middle\\' fill=\\'%2300e8ff\\' font-size=\\'12\\'%3EImmagine non disponibile%3C/text%3E%3C/svg%3E';" />
+                    <br><span style="font-size: 0.7rem; color: rgba(0,232,255,0.5);">🎨 Immagine generata per: "${this.escapeHtml(prompt)}"</span>
+                </div>`;
                 this.addMessage('BARRY', imageHtml, 'assistant', [], true);
             } else {
                 this.addMessage('BARRY', `❌ Non ho potuto generare l'immagine: ${data.error || 'Errore sconosciuto'}`, 'assistant', [], true);
@@ -809,7 +888,7 @@ class BarryInterface {
         const content = this.userInput.value.trim();
         if (!content) return;
 
-        // Controlla se è un comando /image
+        // Comando /image
         if (content.toLowerCase().startsWith('/image ')) {
             const imagePrompt = content.substring(7).trim();
             if (imagePrompt) {
@@ -821,6 +900,15 @@ class BarryInterface {
                 this.userInput.value = '';
                 this.addMessage('BARRY', 'Per generare un\'immagine, usa il comando: `/image descrizione dell\'immagine`\n\nEsempio: `/image un gatto che dorme su una nuvola`', 'assistant', [], true);
             }
+            return;
+        }
+        
+        // Comando /meteo
+        if (content.toLowerCase().startsWith('/meteo ') || content.toLowerCase().startsWith('meteo ')) {
+            const city = content.toLowerCase().startsWith('/meteo ') ? content.substring(7).trim() : content.substring(6).trim();
+            this.addMessage('Tu', content, 'user', [], true);
+            this.userInput.value = '';
+            await this.getWeather(city);
             return;
         }
 
@@ -841,10 +929,10 @@ class BarryInterface {
 
         this.showTypingIndicator();
         try {
-            const res  = await fetch('/api/chat/history', {
-                method:  'POST',
+            const res = await fetch('/api/chat/history', {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
-                body:    JSON.stringify({ conversationId: this.currentConversationId, message: finalMessage })
+                body: JSON.stringify({ conversationId: this.currentConversationId, message: finalMessage })
             });
             const data = await res.json();
             this.hideTypingIndicator();
@@ -866,6 +954,44 @@ class BarryInterface {
     async uploadFile(file) {
         if (!file) return;
         
+        // Gestisci immagini incollate
+        if (file.type && file.type.startsWith('image/')) {
+            this.addMessage('Sistema', `🖼️ Immagine ricevuta: ${file.name}`, 'system', []);
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const imageData = e.target.result;
+                const imageHtml = `<div style="margin: 5px 0;">
+                    <img src="${imageData}" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 1px solid rgba(0,232,255,0.3);" />
+                    <br><span style="font-size: 0.7rem; color: rgba(0,232,255,0.5);">📎 Immagine allegata: ${file.name}</span>
+                </div>`;
+                this.addMessage('Tu', imageHtml, 'user', [], true);
+                
+                const prompt = `Ho allegato un'immagine chiamata "${file.name}". Puoi descrivere cosa vedi nell'immagine? Se non puoi analizzare direttamente l'immagine, dimmi come posso aiutarti con essa.`;
+                
+                this.showTypingIndicator();
+                try {
+                    const res = await fetch('/api/chat/history', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+                        body: JSON.stringify({ conversationId: this.currentConversationId, message: prompt })
+                    });
+                    const data = await res.json();
+                    this.hideTypingIndicator();
+                    if (data.success) {
+                        this.currentConversationId = data.conversationId;
+                        await this.typeMessage(data.response, []);
+                        await this.loadConversations();
+                    }
+                } catch (err) {
+                    this.hideTypingIndicator();
+                    this.addMessage('BARRY', `Ho ricevuto la tua immagine "${file.name}". Purtroppo non posso analizzare visivamente le immagini, ma posso aiutarti a descriverla o a lavorare con essa se me ne parli.`, 'assistant', [], true);
+                }
+            };
+            reader.readAsDataURL(file);
+            return;
+        }
+        
         this.addMessage('Sistema', `📎 Analisi: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`, 'system', []);
         
         const reader = new FileReader();
@@ -876,14 +1002,14 @@ class BarryInterface {
             
             const truncatedContent = fileContent.length > 8000 ? fileContent.substring(0, 8000) + '...[FILE TROPPO LUNGO, TRONCATO]' : fileContent;
             
-            const prompt = `Ho caricato il file "${file.name}". Ecco il suo contenuto:\n\n${truncatedContent}\n\nAnalizza questo file e dimmi di cosa si tratta. Se è codice, spiegamelo. Se è testo, riassumimelo.`;
+            const prompt = `Ho caricato il file "${file.name}". Ecco il suo contenuto:\n\n${truncatedContent}\n\nAnalizza questo file e dimmi di cosa si tratta. Se è codice, spiegamelo. Se è testo, riassumimelo. Rispondi in modo completo e dettagliato.`;
             
             this.showTypingIndicator();
             try {
-                const res  = await fetch('/api/chat/history', {
-                    method:  'POST',
+                const res = await fetch('/api/chat/history', {
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
-                    body:    JSON.stringify({ conversationId: this.currentConversationId, message: prompt })
+                    body: JSON.stringify({ conversationId: this.currentConversationId, message: prompt })
                 });
                 const data = await res.json();
                 this.hideTypingIndicator();
@@ -892,17 +1018,18 @@ class BarryInterface {
                     await this.typeMessage(`📄 **Analisi: ${file.name}**\n\n${data.response}\n\n💡 *Ora puoi farmi domande specifiche su questo file!*`, []);
                     await this.loadConversations();
                 } else {
-                    this.addMessage('BARRY', `Errore: ${data.error}`, 'system', []);
+                    this.addMessage('BARRY', `Errore nell'analisi del file: ${data.error}`, 'system', []);
                 }
             } catch (err) {
                 this.hideTypingIndicator();
-                this.addMessage('BARRY', `Errore: ${err.message}`, 'system', []);
+                this.addMessage('BARRY', `Ho ricevuto il file "${file.name}". Analizziamolo insieme! Puoi farmi domande specifiche sul suo contenuto.`, 'assistant', [], true);
             }
         };
         
         if (file.type === 'text/plain' || file.name.endsWith('.txt') || file.name.endsWith('.js') || 
             file.name.endsWith('.py') || file.name.endsWith('.html') || file.name.endsWith('.css') ||
-            file.name.endsWith('.json') || file.name.endsWith('.md') || file.name.endsWith('.csv')) {
+            file.name.endsWith('.json') || file.name.endsWith('.md') || file.name.endsWith('.csv') ||
+            file.name.endsWith('.xml') || file.name.endsWith('.yml') || file.name.endsWith('.yaml')) {
             reader.readAsText(file, 'UTF-8');
         } else {
             this.fileMemory.addFile(file.name, `[File: ${file.name} - Tipo: ${file.type || 'sconosciuto'} - Dimensione: ${(file.size / 1024).toFixed(1)} KB]`, file.type);
@@ -1020,6 +1147,10 @@ class BarryInterface {
     formatMessage(content) {
         // Gestisci immagini HTML
         if (content.includes('<img')) {
+            return content;
+        }
+        // Gestisci meteo HTML
+        if (content.includes('background: rgba(0,232,255,0.05)')) {
             return content;
         }
         content = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) =>

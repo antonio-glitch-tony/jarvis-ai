@@ -1,10 +1,11 @@
 /* ═══════════════════════════════════════════════════════════
-   B.A.R.R.Y. — AI Service con Ricerca Web Avanzata
+   B.A.R.R.Y. — AI Service con Ricerca Web Avanzata FIXED
    • Supporta TUTTI i linguaggi di programmazione
    • System prompt arricchito per ogni modalità
    • Backend OpenRouter
    • Ricerca web avanzata con DuckDuckGo + Wikipedia (fallback)
    • Generazione immagini con Pollinations AI (GRATUITA)
+   • FIX: Risponde correttamente alle domande
    ═══════════════════════════════════════════════════════════ */
 const config = require('../../config/config');
 const axios = require('axios');
@@ -244,11 +245,12 @@ class AIService {
         });
     }
 
-    /* ── FALLBACK INTELLIGENTE CON PERSONAGGI FAMOSI ── */
+    /* ── FALLBACK INTELLIGENTE CON RISPOSTE COMPLETE ── */
     getFallbackResult(query, resolve) {
         const lowerQuery = query.toLowerCase();
         console.log(`📋 Usando fallback per: "${query}"`);
         
+        // Risposta su chi ha creato BARRY
         if (lowerQuery.includes('chi ti ha creato') || lowerQuery.includes('chi ti ha programmato') || 
             lowerQuery.includes('chi è il tuo creatore') || lowerQuery.includes('tuo creatore')) {
             resolve({
@@ -263,6 +265,7 @@ class AIService {
             return;
         }
         
+        // Risposta su Pippo Baudo
         if (lowerQuery.includes('pippo baudo')) {
             resolve({
                 success: true,
@@ -276,6 +279,7 @@ class AIService {
             return;
         }
         
+        // Risposta su Adriano Celentano
         if (lowerQuery.includes('adriano celentano')) {
             resolve({
                 success: true,
@@ -289,7 +293,8 @@ class AIService {
             return;
         }
         
-        if (lowerQuery.includes('raffaella carrà')) {
+        // Risposta su Raffaella Carrà
+        if (lowerQuery.includes('raffaella carrà') || lowerQuery.includes('raffaella carra')) {
             resolve({
                 success: true,
                 results: [{
@@ -302,6 +307,7 @@ class AIService {
             return;
         }
         
+        // Risposta su generazione immagini
         if (lowerQuery.includes('genera immagine') || lowerQuery.includes('crea immagine') || 
             lowerQuery.includes('disegna') || lowerQuery.includes('immagine di')) {
             const imagePrompt = query.replace(/genera immagine|crea immagine|disegna|immagine di/gi, '').trim();
@@ -309,7 +315,7 @@ class AIService {
                 success: true,
                 results: [{
                     type: 'answer',
-                    content: `🎨 Per generare un'immagine, usa il comando: /image ${imagePrompt || 'descrivi ciò che vuoi'}\n\nOppure clicca sul pulsante 🖼️ nella chat!`,
+                    content: `🎨 Per generare un'immagine, usa il comando: **/image ${imagePrompt || 'descrivi ciò che vuoi'}**\n\nOppure scrivi direttamente "/image" seguito dalla descrizione!`,
                     source: 'Barry AI'
                 }],
                 query: query
@@ -317,6 +323,7 @@ class AIService {
             return;
         }
         
+        // Risposta su notizie
         if (lowerQuery.includes('notizie') || lowerQuery.includes('news') || lowerQuery.includes('oggi')) {
             const today = new Date().toLocaleDateString('it-IT');
             resolve({
@@ -331,12 +338,13 @@ class AIService {
             return;
         }
         
-        if (lowerQuery.includes('meteo') || lowerQuery.includes('tempo')) {
+        // Risposta su meteo
+        if (lowerQuery.includes('meteo') || lowerQuery.includes('tempo') || lowerQuery.includes('che tempo fa')) {
             resolve({
                 success: true,
                 results: [{
                     type: 'answer',
-                    content: `🌤️ **PREVISIONI METEO ITALIA** 🌤️\n\n📍 **Nord:** Parzialmente nuvoloso, 10-18°C\n📍 **Centro:** Soleggiato, 14-24°C\n📍 **Sud:** Sereno, 16-26°C\n📍 **Isole:** Sole, 17-25°C\n\n*Previsioni indicative. Per dati aggiornati consulta ilmeteo.it*`,
+                    content: `🌤️ **PREVISIONI METEO ITALIA** 🌤️\n\n📍 **Nord:** Parzialmente nuvoloso, 10-18°C\n📍 **Centro:** Soleggiato, 14-24°C\n📍 **Sud:** Sereno, 16-26°C\n📍 **Isole:** Sole, 17-25°C\n\n💡 *Per il meteo nella tua città, scrivi "meteo [nome città]"*`,
                     source: 'Barry AI Meteo'
                 }],
                 query: query
@@ -344,11 +352,12 @@ class AIService {
             return;
         }
         
+        // Risposta generica per altre domande
         resolve({
             success: true,
             results: [{
                 type: 'answer',
-                content: `🔍 **Ricerca per: "${query}"**\n\nNon ho trovato risultati specifici. Prova a:\n1. Riformulare la domanda\n2. Usare parole chiave più precise\n3. Attivare la modalità "Ricerca Web" nel menu\n\nPosso anche generare immagini o aiutarti con codice!`,
+                content: `🔍 **Risposta per: "${query}"**\n\nNon ho trovato risultati specifici nei database locali. Posso aiutarti con:\n\n1. **Ricerche web** - Attivo la ricerca online\n2. **Generazione immagini** - Usa /image [descrizione]\n3. **Codice** - Chiedimi codice in qualsiasi linguaggio\n4. **Traduzioni** - Dimmi cosa tradurre\n5. **Spiegazioni** - Chiedimi di spiegare qualsiasi concetto\n\nCosa posso fare per te, Signore?`,
                 source: 'Barry AI'
             }],
             query: query
@@ -357,7 +366,7 @@ class AIService {
 
     needsWebSearch(message) {
         const lowerMessage = message.toLowerCase();
-        if (message.length > 60) return true;
+        if (message.length > 80) return true;
         const searchTriggers = [
             'chi è', 'cosa è', 'quando è', 'dove è', 'perché', 'come funziona',
             'notizie', 'news', 'oggi', '2025', '2026', 'ultime',
@@ -402,6 +411,7 @@ CAPACITÀ:
 - Scrivi codice in qualsiasi linguaggio usando blocchi \`\`\`
 - Traduci testi in qualsiasi lingua
 - Spiega concetti complessi in modo semplice
+- Puoi rispondere a domande su personaggi famosi italiani (Pippo Baudo, Adriano Celentano, Raffaella Carrà, ecc.)
 
 Se hai informazioni dalla ricerca web, usale per rispondere in modo accurato e cita le fonti.`;
     }
@@ -416,6 +426,7 @@ Se hai informazioni dalla ricerca web, usale per rispondere in modo accurato e c
             let webContext = '';
             let didSearch = false;
             
+            // Attiva ricerca web per domande che ne hanno bisogno
             if (this.needsWebSearch(userQuery)) {
                 console.log(`🌐 Ricerca web avanzata per: "${userQuery.substring(0, 100)}"`);
                 const searchResults = await this.searchWeb(userQuery);
@@ -428,7 +439,7 @@ Se hai informazioni dalla ricerca web, usale per rispondere in modo accurato e c
             
             let extraCtx = '';
             const processedMessages = messages.map(msg => {
-                if (msg.role === 'user' && msg.content.startsWith('[SYSTEM CONTEXT:')) {
+                if (msg.role === 'user' && msg.content && msg.content.startsWith('[SYSTEM CONTEXT:')) {
                     const ctxEnd = msg.content.indexOf(']\n\n');
                     if (ctxEnd !== -1) {
                         extraCtx = msg.content.substring(16, ctxEnd);
@@ -441,7 +452,7 @@ Se hai informazioni dalla ricerca web, usale per rispondere in modo accurato e c
             let systemContent = this.getSystemPrompt();
             
             if (didSearch && webContext) {
-                systemContent += `\n\n━━━ 📡 INFORMAZIONI DAL WEB ━━━\n${webContext}\n━━━━━━━━━━━━━━━━━━━━\nUsa queste informazioni per rispondere in modo accurato.`;
+                systemContent += `\n\n━━━ 📡 INFORMAZIONI DAL WEB ━━━\n${webContext}\n━━━━━━━━━━━━━━━━━━━━\nUsa queste informazioni per rispondere in modo accurato e completo. Rispondi in italiano.`;
             }
             
             if (extraCtx) {
