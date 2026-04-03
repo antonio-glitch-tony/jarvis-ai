@@ -1,12 +1,12 @@
 /* ═══════════════════════════════════════════════════════════
-   B.A.R.R.Y. — Frontend App v5.3 COMPLETELY FIXED
-   • FIX: Login persistente
-   • FIX: Orario ROME con Mattino/Pomeriggio/Sera
-   • FIX: Immagini /image mostrate correttamente
-   • FIX: Ricerca web funzionante
-   • FIX: Persistenza chat
+   B.A.R.R.Y. — Frontend App v5.4 ALL FIXES APPLIED
+   • FIX: /image — immagine mostrata con link di fallback
+   • FIX: /cerca e /search — ricerca web funzionante
+   • FIX: Incolla immagini (Ctrl+V) nella chat
+   • FIX: Email ricordata dopo registrazione/login
+   • FIX: Storico chat con backup localStorage
+   • FIX: Orario ROME per raggruppamento date
    • NUOVA: Funzione METEO (/meteo città)
-   • NUOVA: Supporto immagini incollate
    Autore: Antonio Pepice
    ═══════════════════════════════════════════════════════════ */
 
@@ -384,6 +384,23 @@ class BarryInterface {
             this.userInput.style.height = Math.min(this.userInput.scrollHeight, 120) + 'px';
         });
 
+        // FIX: Gestione incolla immagini (Ctrl+V) nella textarea
+        this.userInput.addEventListener('paste', (e) => {
+            const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+            if (!items) return;
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    if (file) {
+                        const fakeFile = new File([file], 'immagine_incollata.png', { type: file.type });
+                        this.uploadFile(fakeFile);
+                    }
+                    return;
+                }
+            }
+        });
+
         this.initCapabilitiesDropdown();
         this.initSpeechRecognition();
         this.loadConversations();
@@ -755,14 +772,29 @@ class BarryInterface {
             const data = await res.json();
             if (data.success) {
                 this.conversations = data.conversations || [];
+                // FIX: Salva backup locale delle conversazioni
+                try { localStorage.setItem('barry_conv_backup', JSON.stringify(this.conversations)); } catch(e) {}
                 this.renderConversationsList();
                 console.log(`📋 Caricate ${this.conversations.length} conversazioni`);
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            // FIX: Se il server non risponde, usa il backup locale
+            console.warn('Server non raggiungibile, uso backup locale conversazioni');
+            try {
+                const backup = localStorage.getItem('barry_conv_backup');
+                if (backup) {
+                    this.conversations = JSON.parse(backup);
+                    this.renderConversationsList();
+                    console.log(`📋 Ripristinate ${this.conversations.length} conversazioni da backup locale`);
+                }
+            } catch(e2) { console.error(e2); }
+        }
     }
 
     _groupByDate(conversations) {
-        const now   = new Date();
+        // FIX: Usa timezone Rome per raggruppamento date
+        const nowRome = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
+        const now   = nowRome;
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const yday  = new Date(today); yday.setDate(yday.getDate() - 1);
         const week  = new Date(today); week.setDate(week.getDate() - 7);
@@ -883,11 +915,15 @@ class BarryInterface {
             
             if (data.success && data.imageUrl) {
                 // Aggiungi timestamp per evitare cache
-                const imageUrlWithCache = `${data.imageUrl}&_t=${Date.now()}`;
-                const imageHtml = `<div style="margin: 10px 0;">
-                    <img src="${imageUrlWithCache}" alt="${this.escapeHtml(prompt)}" style="max-width: 100%; max-height: 400px; border-radius: 8px; border: 1px solid rgba(0,232,255,0.3); background: #0a0a0a; object-fit: contain;" 
-                         onload="this.style.opacity='1'" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'400\\' height=\\'400\\' viewBox=\\'0 0 400 400\\'%3E%3Crect width=\\'400\\' height=\\'400\\' fill=\\'%230a0a0a\\'/%3E%3Ctext x=\\'200\\' y=\\'200\\' text-anchor=\\'middle\\' fill=\\'%2300e8ff\\' font-size=\\'14\\'%3E🖼️ Immagine generata%3C/text%3E%3C/svg%3E';" />
-                    <br><span style="font-size: 0.7rem; color: rgba(0,232,255,0.5);">🎨 Immagine generata per: "${this.escapeHtml(prompt)}"</span>
+                const imageUrlWithCache = data.imageUrl.includes('?') 
+                    ? `${data.imageUrl}&nocache=${Date.now()}` 
+                    : `${data.imageUrl}?nocache=${Date.now()}`;
+                const imageHtml = `<div class="barry-image-block" style="margin: 10px 0;">
+                    <img src="${imageUrlWithCache}" alt="${this.escapeHtml(prompt)}" 
+                         style="max-width:100%;max-height:400px;border-radius:8px;border:1px solid rgba(0,232,255,0.3);background:#0a0a0a;object-fit:contain;display:block;" 
+                         onload="this.style.opacity='1';this.style.display='block';" 
+                         onerror="this.parentElement.innerHTML='<div style=\'color:#ff4444;padding:10px\'>❌ Impossibile caricare l\'immagine. <a href=\'${imageUrlWithCache}\' target=\'_blank\' style=\'color:#00f3ff\'>Apri nel browser</a></div>';" />
+                    <br><span style="font-size:0.7rem;color:rgba(0,232,255,0.5);">🎨 Immagine generata per: "${this.escapeHtml(prompt)}" — <a href="${imageUrlWithCache}" target="_blank" style="color:#00f3ff">Apri immagine</a></span>
                 </div>`;
                 this.addMessage('BARRY', imageHtml, 'assistant', [], true);
             } else {
@@ -896,6 +932,44 @@ class BarryInterface {
         } catch (err) {
             this.hideTypingIndicator();
             this.addMessage('BARRY', `❌ Errore di connessione: ${err.message}`, 'assistant', [], true);
+        }
+    }
+
+    async searchWeb(query) {
+        this.showTypingIndicator();
+        try {
+            const res = await fetch('/api/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+                body: JSON.stringify({ query })
+            });
+            const data = await res.json();
+            this.hideTypingIndicator();
+
+            if (data.success && data.results?.length) {
+                let html = `<div style="margin:8px 0;">
+                    <div style="font-size:0.8rem;color:rgba(0,232,255,0.7);margin-bottom:8px;">🔍 Risultati per: <strong>${this.escapeHtml(query)}</strong></div>`;
+                data.results.forEach((r, i) => {
+                    html += `<div style="margin:6px 0;padding:8px;background:rgba(0,232,255,0.05);border-left:2px solid rgba(0,232,255,0.3);border-radius:4px;">
+                        <div style="font-size:0.85rem;font-weight:600;color:#00f3ff;">${i+1}. ${this.escapeHtml(r.title)}</div>
+                        <div style="font-size:0.75rem;color:rgba(255,255,255,0.7);margin:3px 0;">${this.escapeHtml(r.snippet)}</div>
+                        <a href="${this.escapeHtml(r.url)}" target="_blank" style="font-size:0.7rem;color:rgba(0,232,255,0.5);">${this.escapeHtml(r.url.substring(0, 60))}...</a>
+                    </div>`;
+                });
+                if (data.aiSummary) {
+                    html += `<div style="margin-top:10px;padding:8px;background:rgba(0,100,50,0.1);border-left:2px solid rgba(0,255,100,0.3);border-radius:4px;">
+                        <div style="font-size:0.75rem;color:rgba(0,255,150,0.8);">🤖 Riepilogo BARRY:</div>
+                        <div style="font-size:0.8rem;margin-top:4px;">${this.formatMessage(data.aiSummary)}</div>
+                    </div>`;
+                }
+                html += '</div>';
+                this.addMessage('BARRY', html, 'assistant', [], true);
+            } else {
+                this.addMessage('BARRY', `❌ Nessun risultato per: **${this.escapeHtml(query)}**\n\nProva con parole chiave diverse.`, 'assistant', [], true);
+            }
+        } catch (err) {
+            this.hideTypingIndicator();
+            this.addMessage('BARRY', `❌ Errore di ricerca: ${err.message}`, 'assistant', [], true);
         }
     }
 
@@ -918,6 +992,21 @@ class BarryInterface {
             return;
         }
         
+        // Comando /cerca e /search — ricerca web
+        if (content.toLowerCase().startsWith('/cerca ') || content.toLowerCase().startsWith('/search ')) {
+            const query = content.replace(/^\/cerca\s+|\/search\s+/i, '').trim();
+            if (query) {
+                this.addMessage('Tu', content, 'user', [], true);
+                this.userInput.value = '';
+                await this.searchWeb(query);
+            } else {
+                this.addMessage('Tu', content, 'user', [], true);
+                this.userInput.value = '';
+                this.addMessage('BARRY', 'Per cercare sul web usa: `/cerca cosa vuoi cercare`\n\nEsempio: `/cerca ultime notizie tecnologia`', 'assistant', [], true);
+            }
+            return;
+        }
+
         // Comando /meteo
         if (content.toLowerCase().startsWith('/meteo ') || content.toLowerCase().startsWith('meteo ')) {
             const city = content.toLowerCase().startsWith('/meteo ') ? content.substring(7).trim() : content.substring(6).trim();
@@ -1160,8 +1249,8 @@ class BarryInterface {
     }
 
     formatMessage(content) {
-        // Gestisci immagini HTML
-        if (content.includes('<img')) {
+        // Gestisci immagini HTML e blocchi speciali
+        if (content.includes('<img') || content.includes('barry-image-block') || content.includes('class="barry-')) {
             return content;
         }
         // Gestisci meteo HTML
@@ -1699,6 +1788,8 @@ async function confirmGoogleAuth() {
         
         if (data.success) {
             localStorage.setItem('barry_token', data.token);
+            const savedEmail = window._pendingGaEmail || pendingRegistrationEmail;
+            if (savedEmail) localStorage.setItem('barry_remembered_email', savedEmail);
             window.barry = new BarryInterface();
             showAuthMessage('✅ Registrazione completata!', true);
         } else {
@@ -1745,6 +1836,7 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
 
         if (data.success) {
             localStorage.setItem('barry_token', data.token);
+            localStorage.setItem('barry_remembered_email', email); // FIX: ricorda email
             window.barry = new BarryInterface();
             showAuthMessage('✅ Accesso effettuato!', true);
         } else {
@@ -1754,6 +1846,15 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
         showAuthMessage('❌ Errore di connessione');
     }
 });
+
+// FIX: Pre-compila email se già loggato in precedenza
+(function() {
+    const rememberedEmail = localStorage.getItem('barry_remembered_email');
+    if (rememberedEmail) {
+        const loginEmailEl = document.getElementById('loginEmail');
+        if (loginEmailEl) loginEmailEl.value = rememberedEmail;
+    }
+})();
 
 async function sendRecoverCode() {
     const email = document.getElementById('recoverEmail')?.value;

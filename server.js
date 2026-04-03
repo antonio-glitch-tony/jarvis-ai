@@ -32,6 +32,102 @@ app.delete('/api/conversations/:id', barryController.deleteConversation.bind(bar
 ═══════════════════════════════════════════════════════════ */
 app.post('/api/translate',           barryController.translate.bind(barryController));
 app.post('/api/summarize',           barryController.summarize.bind(barryController));
+
+/* ═══════════════════════════════════════════════════════════
+   Ricerca Web — DuckDuckGo Instant Answer API (no key)
+═══════════════════════════════════════════════════════════ */
+app.post('/api/search', async (req, res) => {
+    try {
+        const { query } = req.body;
+        if (!query || !query.trim()) {
+            return res.json({ success: false, error: 'Query mancante' });
+        }
+
+        const axios = require('axios');
+        const encodedQuery = encodeURIComponent(query.trim());
+
+        // DuckDuckGo Instant Answer API
+        const ddgUrl = `https://api.duckduckgo.com/?q=${encodedQuery}&format=json&no_html=1&skip_disambig=1&no_redirect=1`;
+        const ddgRes = await axios.get(ddgUrl, { timeout: 8000, headers: { 'User-Agent': 'BARRY-AI/4.2' } });
+        const ddg = ddgRes.data;
+
+        const results = [];
+
+        // Risultato principale
+        if (ddg.AbstractText) {
+            results.push({
+                title: ddg.Heading || query,
+                snippet: ddg.AbstractText.substring(0, 300),
+                url: ddg.AbstractURL || ddg.AbstractSource || 'https://duckduckgo.com/?q=' + encodedQuery
+            });
+        }
+
+        // Related topics
+        if (ddg.RelatedTopics && ddg.RelatedTopics.length) {
+            ddg.RelatedTopics.slice(0, 5).forEach(t => {
+                if (t.Text && t.FirstURL) {
+                    results.push({
+                        title: t.Text.substring(0, 80),
+                        snippet: t.Text.substring(0, 250),
+                        url: t.FirstURL
+                    });
+                }
+            });
+        }
+
+        // Se non abbiamo risultati, usa HTML scraping semplice su DuckDuckGo Lite
+        if (!results.length) {
+            try {
+                const liteRes = await axios.get(`https://lite.duckduckgo.com/lite/?q=${encodedQuery}`, {
+                    timeout: 8000,
+                    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BARRY-AI/4.2)' }
+                });
+                const html = liteRes.data;
+                // Estrai risultati con regex semplice
+                const linkRegex = /<a[^>]+href="([^"]+)"[^>]*class="result-link"[^>]*>([^<]+)<\/a>/gi;
+                const snippetRegex = /<td[^>]+class="result-snippet"[^>]*>([^<]+)<\/td>/gi;
+                const links = [...html.matchAll(/<a[^>]+class="result-link"[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/gi)];
+                const snippets = [...html.matchAll(/<td[^>]+class="result-snippet"[^>]*>([\s\S]*?)<\/td>/gi)];
+                links.slice(0, 5).forEach((m, i) => {
+                    results.push({
+                        title: m[2]?.trim() || `Risultato ${i+1}`,
+                        snippet: snippets[i]?.[1]?.replace(/<[^>]+>/g, '').trim() || '',
+                        url: m[1]?.startsWith('http') ? m[1] : 'https://duckduckgo.com' + m[1]
+                    });
+                });
+            } catch(e) { /* silenzioso */ }
+        }
+
+        // Fallback: almeno il link di ricerca
+        if (!results.length) {
+            results.push({
+                title: `Cerca "${query}" su DuckDuckGo`,
+                snippet: `Nessun risultato diretto trovato. Clicca il link per cercare manualmente.`,
+                url: `https://duckduckgo.com/?q=${encodedQuery}`
+            });
+        }
+
+        // Genera un riepilogo AI breve tramite BarryController se disponibile
+        let aiSummary = null;
+        try {
+            if (results.length > 0 && barryController) {
+                const snippets = results.slice(0, 3).map(r => r.snippet).filter(Boolean).join('\n');
+                if (snippets.length > 50) {
+                    const summaryData = await barryController._callOpenRouter([{
+                        role: 'user',
+                        content: `Riassumi brevemente in 2-3 frasi questi risultati di ricerca per la query "${query}":\n\n${snippets}`
+                    }], 300);
+                    aiSummary = summaryData;
+                }
+            }
+        } catch(e) { /* sommario opzionale */ }
+
+        res.json({ success: true, results: results.slice(0, 6), aiSummary, query });
+    } catch (err) {
+        console.error('❌ Errore ricerca:', err.message);
+        res.json({ success: false, error: err.message });
+    }
+});
 app.post('/api/code',                barryController.generateCode.bind(barryController));
 app.post('/api/debug',               barryController.debugCode.bind(barryController));
 app.post('/api/explain',             barryController.explain.bind(barryController));
