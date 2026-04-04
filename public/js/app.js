@@ -5,6 +5,7 @@
    • FIX: Ricerca web funzionante
    • FIX: Incolla immagini (Ctrl+V)
    • FIX: Ora/data in tempo reale
+   • FIX: Logout funzionante
    Autore: Antonio Pepice
    ═══════════════════════════════════════════════════════════ */
 
@@ -293,6 +294,16 @@ class BarryInterface {
         this._startAuthHologram();
     }
 
+    /* ── LOGOUT METHOD ── */
+    logout() {
+        console.log('🔐 Logout richiesto');
+        localStorage.removeItem('barry_token');
+        localStorage.removeItem('barry_remembered_email');
+        this.token = null;
+        this.currentUser = null;
+        window.location.reload();
+    }
+
     /* ── OTTIENE SALUTO BASATO SULL'ORARIO DI ROME ── */
     async getTimeBasedGreeting() {
         try {
@@ -383,7 +394,6 @@ class BarryInterface {
             this.userInput.style.height = Math.min(this.userInput.scrollHeight, 120) + 'px';
         });
 
-        // Gestione incolla immagini
         this.userInput.addEventListener('paste', (e) => {
             const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
             if (!items) return;
@@ -402,11 +412,10 @@ class BarryInterface {
 
         this.initCapabilitiesDropdown();
         this.initSpeechRecognition();
-        this.initSidebar();  // Inizializza sidebar dopo che il DOM è pronto
+        this.initSidebar();
         this.loadConversations();
         this.createNewChat();
         
-        // Esponi i metodi globalmente per l'hamburger
         window.barry = this;
     }
 
@@ -416,7 +425,6 @@ class BarryInterface {
         this.sidebarOverlay = document.getElementById('sidebarOverlay');
         
         if (this.hamburgerBtn) {
-            // Rimuovi eventuali listener esistenti
             const newBtn = this.hamburgerBtn.cloneNode(true);
             this.hamburgerBtn.parentNode.replaceChild(newBtn, this.hamburgerBtn);
             this.hamburgerBtn = newBtn;
@@ -437,7 +445,6 @@ class BarryInterface {
             this.sidebarOverlay.onclick = () => this.toggleSidebar();
         }
         
-        // Su desktop la sidebar è sempre visibile
         if (window.innerWidth >= 992) {
             this.openSidebar();
         } else {
@@ -576,7 +583,6 @@ class BarryInterface {
         }
     }
 
-    /* ── METEO ── */
     async getWeather(city) {
         if (!city || city.trim() === '') {
             this.addMessage('BARRY', 'Per conoscere il meteo, scrivi: **meteo [nome città]**\n\nEsempio: `meteo Roma`\n\nOppure usa il comando `/meteo Roma`', 'assistant', [], true);
@@ -936,9 +942,6 @@ class BarryInterface {
         } catch (e) { console.error(e); }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       GENERAZIONE IMMAGINI
-    ═══════════════════════════════════════════════════════════ */
     async generateImage(prompt) {
         this.showTypingIndicator();
         try {
@@ -1013,7 +1016,6 @@ class BarryInterface {
         const content = this.userInput.value.trim();
         if (!content) return;
 
-        // Comando /image
         if (content.toLowerCase().startsWith('/image ')) {
             const imagePrompt = content.substring(7).trim();
             if (imagePrompt) {
@@ -1028,7 +1030,6 @@ class BarryInterface {
             return;
         }
         
-        // Comando /cerca e /search
         if (content.toLowerCase().startsWith('/cerca ') || content.toLowerCase().startsWith('/search ')) {
             const query = content.replace(/^\/cerca\s+|\/search\s+/i, '').trim();
             if (query) {
@@ -1043,7 +1044,6 @@ class BarryInterface {
             return;
         }
 
-        // Comando /meteo
         if (content.toLowerCase().startsWith('/meteo ') || content.toLowerCase().startsWith('meteo ')) {
             const city = content.toLowerCase().startsWith('/meteo ') ? content.substring(7).trim() : content.substring(6).trim();
             this.addMessage('Tu', content, 'user', [], true);
@@ -1389,11 +1389,6 @@ class BarryInterface {
             const msg = document.getElementById('profileMsg');
             if (msg) msg.innerHTML = `<span style="color:#ff4444">❌ ${e.message}</span>`;
         }
-    }
-
-    logout() {
-        localStorage.removeItem('barry_token');
-        window.location.reload();
     }
 
     openAuthHologramVoice() {
@@ -1880,7 +1875,6 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     }
 });
 
-// Pre-compila email se già loggato in precedenza
 (function() {
     const rememberedEmail = localStorage.getItem('barry_remembered_email');
     if (rememberedEmail) {
@@ -1978,6 +1972,20 @@ function closeAuthHologramVoice() {
     }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   GLOBAL LOGOUT FUNCTION
+═══════════════════════════════════════════════════════════ */
+function logout() {
+    console.log('🔐 Logout eseguito');
+    localStorage.removeItem('barry_token');
+    localStorage.removeItem('barry_remembered_email');
+    if (window.barry) {
+        window.barry.token = null;
+        window.barry.currentUser = null;
+    }
+    window.location.reload();
+}
+
 // Inizializzazione globale
 document.addEventListener('DOMContentLoaded', () => {
     window.barry = new BarryInterface();
@@ -1985,4 +1993,14 @@ document.addEventListener('DOMContentLoaded', () => {
     initTfaInputs('recoverTfaInputs');
     initTfaInputs('regGaInputs');
     initTfaInputs('verifyCodeInputs');
+    
+    // Assicura che il bottone logout chiami la funzione globale
+    const logoutBtn = document.querySelector('.logout-btn');
+    if (logoutBtn && !logoutBtn.hasAttribute('data-listener')) {
+        logoutBtn.setAttribute('data-listener', 'true');
+        logoutBtn.onclick = (e) => {
+            e.preventDefault();
+            logout();
+        };
+    }
 });
