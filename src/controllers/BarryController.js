@@ -1,9 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   B.A.R.R.Y. — Controller v5.5 COMPLETELY FIXED
-   • FIX: Immagini con fallback multipli (Pollinations → Lexica → Dummy)
-   • FIX: Ricerca web con Brave + DuckDuckGo + Wikipedia
-   • FIX: Rilevamento automatico di ora/data nel backend
-   • FIX: Risposte immediate senza chiamare AI per domande semplici
+   B.A.R.R.Y. — Controller v5.6 - EMAIL FIX
    ═══════════════════════════════════════════════════════════ */
 const aiService = require('../services/aiService');
 const chatDB    = require('../database/chatDB');
@@ -18,7 +14,7 @@ const axios     = require('axios');
 const ALLOWED_EMAIL = 'antonio.pepice08@gmail.com';
 const JWT_SECRET    = process.env.JWT_SECRET || 'barry_secret_key_2024';
 
-// Configurazione email
+// Configurazione email IDENTICA a test-mail.js (che funziona)
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -36,6 +32,8 @@ function generateVerificationCode() {
 }
 
 async function sendVerificationEmail(email, code) {
+    console.log(`📧 Tentativo invio email a: ${email} con codice: ${code}`);
+    
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: email,
@@ -65,11 +63,11 @@ async function sendVerificationEmail(email, code) {
     };
     
     try {
-        await transporter.sendMail(mailOptions);
-        console.log(`📧 Email di verifica inviata a: ${email}`);
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`✅ Email inviata a: ${email} - MessageId: ${info.messageId}`);
         return true;
     } catch (error) {
-        console.error('❌ Errore invio email:', error);
+        console.error('❌ ERRORE INVIO EMAIL:', error.message);
         return false;
     }
 }
@@ -88,9 +86,6 @@ function getUserIdFromReq(req) {
 
 class BarryController {
 
-    /* ═══════════════════════════════════════════════════════════
-       METODO INTERNO PER CHIAMARE OPENROUTER
-    ═══════════════════════════════════════════════════════════ */
     async _callOpenRouter(messages, maxTokens = 500) {
         try {
             const config = require('../../config/config');
@@ -117,10 +112,6 @@ class BarryController {
         }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       VERIFICA EMAIL
-    ═══════════════════════════════════════════════════════════ */
-    
     async registerSendCode(req, res) {
         try {
             const { email } = req.body;
@@ -205,10 +196,6 @@ class BarryController {
             res.status(500).json({ error: e.message });
         }
     }
-
-    /* ═══════════════════════════════════════════════════════════
-       REGISTRAZIONE CON CRITTOGRAFIA
-    ═══════════════════════════════════════════════════════════ */
 
     async register(req, res) {
         try {
@@ -319,10 +306,6 @@ class BarryController {
     async registerConfirmGA(req, res) {
         return this.verifyGoogleAuth(req, res);
     }
-
-    /* ═══════════════════════════════════════════════════════════
-       LOGIN CON DECRIPTAZIONE
-    ═══════════════════════════════════════════════════════════ */
 
     async login(req, res) {
         try {
@@ -484,9 +467,6 @@ class BarryController {
         } catch (e) { res.status(500).json({ error: e.message }); }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       METEO
-    ═══════════════════════════════════════════════════════════ */
     async getWeather(req, res) {
         try {
             const { city } = req.query;
@@ -527,9 +507,6 @@ class BarryController {
         }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       GENERAZIONE IMMAGINI - CON FALLBACK MULTIPLI
-    ═══════════════════════════════════════════════════════════ */
     async generateImage(req, res) {
         try {
             const { prompt } = req.body;
@@ -539,7 +516,6 @@ class BarryController {
             let imageUrl = null;
             let usedService = null;
 
-            // ========== TENTATIVO 1: Pollinations AI ==========
             try {
                 const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${Date.now()}`;
                 const testRes = await axios.head(pollinationsUrl, { timeout: 5000 });
@@ -552,7 +528,6 @@ class BarryController {
                 console.log('Pollinations fallito, provo fallback...');
             }
 
-            // ========== TENTATIVO 2: Lexica.art API (gratuita, no API key) ==========
             if (!imageUrl) {
                 try {
                     const lexicaRes = await axios.get(`https://lexica.art/api/v1/search?q=${encodedPrompt}`, { timeout: 8000 });
@@ -566,7 +541,6 @@ class BarryController {
                 }
             }
 
-            // ========== TENTATIVO 3: DummyImage con testo (fallback estremo) ==========
             if (!imageUrl) {
                 const shortPrompt = prompt.substring(0, 50).replace(/[^a-zA-Z0-9]/g, ' ');
                 imageUrl = `https://via.placeholder.com/1024x1024/0a0a0a/00e8ff?text=${encodeURIComponent(shortPrompt)}`;
@@ -579,7 +553,7 @@ class BarryController {
                 imageUrl: imageUrl,
                 prompt: prompt,
                 service: usedService,
-                message: `🖼️ Immagine generata per: "${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}"${usedService !== 'Pollinations AI' ? `\n\n⚠️ Servizio di backup utilizzato: ${usedService}` : ''}`
+                message: `🖼️ Immagine generata per: "${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}"`
             });
         } catch (e) {
             console.error('Errore generazione immagine:', e);
@@ -587,11 +561,6 @@ class BarryController {
         }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       CHAT - CON RILEVAMENTO AUTOMATICO ORA/DATA
-    ═══════════════════════════════════════════════════════════ */
-
-    // Metodo helper per rispondere a domande su ora/data
     _handleDateTimeQuery(message) {
         const lowerMessage = message.toLowerCase();
         
@@ -657,10 +626,8 @@ class BarryController {
             const { conversationId, message, options } = req.body;
             if (!message) return res.status(400).json({ error: 'Message is required' });
 
-            // ========== CONTROLLO ORA/DATA PRIMA DI CHIAMARE L'AI ==========
             const dateTimeCheck = this._handleDateTimeQuery(message);
             if (dateTimeCheck.isDateTimeQuery) {
-                // Salva il messaggio dell'utente
                 let convId = conversationId;
                 if (!convId) {
                     const autoTitle = await this._generateChatTitle(message);
@@ -768,7 +735,6 @@ class BarryController {
             if (!messages || !Array.isArray(messages))
                 return res.status(400).json({ error: 'Messages array is required' });
             
-            // Controlla l'ultimo messaggio per ora/data
             const lastMessage = messages.filter(m => m.role === 'user').pop();
             if (lastMessage) {
                 const dateTimeCheck = this._handleDateTimeQuery(lastMessage.content);
@@ -786,9 +752,6 @@ class BarryController {
         } catch (e) { res.status(500).json({ error: e.message }); }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       FUNZIONI SPECIALI
-    ═══════════════════════════════════════════════════════════ */
     async translate(req, res) {
         try {
             const { text, targetLanguage } = req.body;
