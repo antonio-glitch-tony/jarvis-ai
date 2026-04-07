@@ -1,5 +1,7 @@
 /* ═══════════════════════════════════════════════════════════
-   B.A.R.R.Y. — Controller v5.6 - EMAIL FIX
+   B.A.R.R.Y. — Controller v6.0 WITH TURSO PERSISTENT DATABASE
+   • Database utenti su Turso Cloud (PERSISTENTE)
+   • Login funzionante anche dopo riavvio server
    ═══════════════════════════════════════════════════════════ */
 const aiService = require('../services/aiService');
 const chatDB    = require('../database/chatDB');
@@ -15,7 +17,7 @@ const axios     = require('axios');
 const ALLOWED_EMAIL = 'antonio.pepice08@gmail.com';
 const JWT_SECRET    = process.env.JWT_SECRET || 'barry_secret_key_2024';
 
-// Configurazione email IDENTICA a test-mail.js (che funziona)
+// Configurazione email (funzionante)
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -24,7 +26,7 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Store temporaneo
+// Store temporaneo per codici di verifica (solo in memoria, scadono)
 const verificationCodes = new Map();
 const pendingRegistrations = new Map();
 
@@ -113,6 +115,8 @@ class BarryController {
         }
     }
 
+    // ==================== REGISTRAZIONE ====================
+    
     async registerSendCode(req, res) {
         try {
             const { email } = req.body;
@@ -123,8 +127,9 @@ class BarryController {
                 return res.status(403).json({ error: 'Email non autorizzata.' });
             }
             
+            // Verifica nel database se l'utente esiste già
             const existingUser = await userDB.getUserByEmail(normalizedEmail);
-            if (existingUser && existingUser.completed) {
+            if (existingUser && existingUser.completed === 1) {
                 return res.status(400).json({ error: 'Utente già registrato. Vai su ACCEDI.' });
             }
             
@@ -217,8 +222,9 @@ class BarryController {
                 return res.status(400).json({ error: 'Devi prima verificare la tua email.' });
             }
 
+            // Verifica nel database se l'utente esiste già
             const existingUser = await userDB.getUserByEmail(normalizedEmail);
-            if (existingUser && existingUser.completed) {
+            if (existingUser && existingUser.completed === 1) {
                 return res.status(400).json({ error: 'Utente già registrato. Vai su ACCEDI.' });
             }
 
@@ -235,23 +241,24 @@ class BarryController {
                 length: 32
             });
 
-            // Salva su SQLite (persistente)
+            // Salva nel database persistente (Turso)
             await userDB.saveUser({
                 email: normalizedEmail,
                 name: name,
                 surname: surname,
-                encryptedName,
-                encryptedSurname,
-                encryptionSalt,
+                encryptedName: encryptedName,
+                encryptedSurname: encryptedSurname,
+                encryptionSalt: encryptionSalt,
                 passwordHash: hashedPassword,
                 secretWordHash: hashedSecretWord,
                 fingerprintHash: encryptionService.hash(fingerprint),
                 gaSecret: secret.base32,
+                twofaEnabled: true,
                 completed: false,
                 emailVerified: true
             });
 
-            console.log(`📝 Registrazione iniziata: ${normalizedEmail}`);
+            console.log(`📝 Registrazione iniziata (salvata su Turso): ${normalizedEmail}`);
 
             const qrDataUrl = await qrcode.toDataURL(secret.otpauth_url);
             pendingRegistrations.delete(normalizedEmail);
@@ -275,10 +282,12 @@ class BarryController {
             if (!email || !gaCode) return res.status(400).json({ error: 'Email e codice GA richiesti' });
 
             const normalizedEmail = email.trim().toLowerCase();
+            
+            // Recupera dal database Turso
             const user = await userDB.getUserByEmail(normalizedEmail);
 
             if (!user) return res.status(400).json({ error: 'Utente non trovato.' });
-            if (user.completed) return res.status(400).json({ error: 'Utente già registrato.' });
+            if (user.completed === 1) return res.status(400).json({ error: 'Utente già registrato.' });
 
             const verified = speakeasy.totp.verify({
                 secret: user.ga_secret,
@@ -289,12 +298,17 @@ class BarryController {
             
             if (!verified) return res.status(400).json({ error: 'Codice Google Authenticator non valido' });
 
-            // Marca come completato nel DB
-            await userDB.completeRegistration(normalizedEmail);
-            console.log(`✅ Registrazione completata: ${normalizedEmail}`);
+            // Aggiorna il database segnando completed = true
+            await userDB.saveUser({
+                ...user,
+                completed: true,
+                registered_at: new Date().toISOString()
+            });
+
+            console.log(`✅ Registrazione completata (salvata su Turso): ${normalizedEmail}`);
 
             const token = jwt.sign(
-                { email: normalizedEmail, name: 'Utente' },
+                { email: normalizedEmail, name: user.name || 'Utente' },
                 JWT_SECRET,
                 { expiresIn: '30d' }
             );
@@ -309,6 +323,8 @@ class BarryController {
         return this.verifyGoogleAuth(req, res);
     }
 
+    // ==================== LOGIN ====================
+    
     async login(req, res) {
         try {
             const { email, password, secretWord, fingerprint, token } = req.body;
@@ -324,13 +340,14 @@ class BarryController {
                 return res.status(403).json({ error: 'Email non autorizzata.' });
             }
 
+            // Recupera dal DATABASE PERSISTENTE (Turso)
             const user = await userDB.getUserByEmail(normalizedEmail);
             
             if (!user) {
                 return res.status(400).json({ error: 'Utente non trovato. Devi prima registrarti.' });
             }
             
-            if (!user.completed) {
+            if (user.completed !== 1) {
                 return res.status(400).json({ error: 'Registrazione non completata. Controlla la tua email e completa la registrazione.' });
             }
 
@@ -342,11 +359,11 @@ class BarryController {
 
             const fingerprintHash = encryptionService.hash(fingerprint);
             
-            if (user.twofa_enabled && !token) {
+            if (user.twofa_enabled === 1 && !token) {
                 return res.json({ requiresTwoFactor: true });
             }
 
-            if (user.twofa_enabled && token) {
+            if (user.twofa_enabled === 1 && token) {
                 const verified = speakeasy.totp.verify({
                     secret: user.ga_secret,
                     encoding: 'base32',
@@ -370,7 +387,10 @@ class BarryController {
             }
 
             chatDB.setUserKey(normalizedEmail, encryptionKey);
+            
+            // Aggiorna ultimo login
             userDB.updateLastLogin(normalizedEmail, req.ip, req.headers['user-agent']);
+            userDB.logLoginAttempt(normalizedEmail, req.ip, true);
 
             const jwtToken = jwt.sign(
                 { email: normalizedEmail, name: decryptedName },
@@ -378,14 +398,15 @@ class BarryController {
                 { expiresIn: '30d' }
             );
             
-            console.log(`🔐 Login riuscito: ${normalizedEmail}`);
+            console.log(`🔐 Login riuscito (DB Turso persistente): ${normalizedEmail}`);
             res.json({ 
                 success: true, 
                 token: jwtToken,
                 user: {
                     name: decryptedName,
                     surname: decryptedSurname,
-                    email: normalizedEmail
+                    email: normalizedEmail,
+                    twofa_enabled: user.twofa_enabled === 1
                 }
             });
         } catch (e) {
@@ -409,7 +430,8 @@ class BarryController {
             const user = await userDB.getUserByEmail(normalizedEmail);
             if (user) {
                 const newHash = await bcrypt.hash(newPassword, 10);
-                await userDB.updatePasswordHash(normalizedEmail, newHash);
+                user.password_hash = newHash;
+                await userDB.saveUser(user);
                 console.log(`✅ Password resettata: ${normalizedEmail}`);
             }
             res.json({ success: true, message: 'Password aggiornata.' });
@@ -424,8 +446,8 @@ class BarryController {
             if (user) {
                 const valid = await bcrypt.compare(currentPassword, user.password_hash);
                 if (valid) {
-                    const newHash = await bcrypt.hash(newPassword, 10);
-                    await userDB.updatePasswordHash(normalizedEmail, newHash);
+                    user.password_hash = await bcrypt.hash(newPassword, 10);
+                    await userDB.saveUser(user);
                     console.log(`✅ Password cambiata: ${normalizedEmail}`);
                 } else {
                     return res.status(400).json({ error: 'Password attuale errata' });
@@ -442,7 +464,7 @@ class BarryController {
 
             const user = await userDB.getUserByEmail(userId);
             
-            if (!user || !user.completed) {
+            if (!user || user.completed !== 1) {
                 return res.status(401).json({ error: 'Utente non trovato' });
             }
             
@@ -452,7 +474,7 @@ class BarryController {
                     name: user.name || 'Utente',
                     surname: user.surname || '',
                     email: userId,
-                    twofa_enabled: true
+                    twofa_enabled: user.twofa_enabled === 1
                 }
             });
         } catch (e) {
@@ -465,15 +487,21 @@ class BarryController {
             const { name, surname } = req.body;
             const userId = getUserIdFromReq(req);
             
-            const user = userId ? await userDB.getUserByEmail(userId) : null;
-            if (!userId || !user) {
+            const user = await userDB.getUserByEmail(userId);
+            if (!user) {
                 return res.status(401).json({ error: 'Non autorizzato' });
             }
+            
+            user.name = name;
+            user.surname = surname;
+            await userDB.saveUser(user);
             
             res.json({ success: true, message: 'Profilo aggiornato' });
         } catch (e) { res.status(500).json({ error: e.message }); }
     }
 
+    // ==================== METEO ====================
+    
     async getWeather(req, res) {
         try {
             const { city } = req.query;
@@ -514,6 +542,8 @@ class BarryController {
         }
     }
 
+    // ==================== GENERAZIONE IMMAGINI ====================
+    
     async generateImage(req, res) {
         try {
             const { prompt } = req.body;
@@ -568,6 +598,8 @@ class BarryController {
         }
     }
 
+    // ==================== CHAT ====================
+    
     _handleDateTimeQuery(message) {
         const lowerMessage = message.toLowerCase();
         
